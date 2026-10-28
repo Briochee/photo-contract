@@ -218,3 +218,15 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Local client records, SQLite databases, and generated PDFs
+/data/*
+!/data/.gitkeep
+*.sqlite3-shm
+*.sqlite3-wal
+
+# Frontend dependencies and generated bundles
+/frontend/node_modules/
+/frontend/dist/
+/frontend/.vite/
+/logs/
