@@ -1,0 +1,28 @@
+:root {
+  color-scheme: light;
+  --paper: #f1f2ef;
+  --paper-deep: #dfe4e2;
+  --surface: #f8f9f5;
+  --surface-raised: #fdfdf9;
+  --ink: #24241f;
+  --ink-soft: #66645d;
+  --accent: #72283a;
+  --accent-blue: #193f64;
+  --line: rgb(36 36 31 / 18%);
+  --line-strong: rgb(36 36 31 / 56%);
+  --focus: #2458a6;
+  --danger: #9d2e2e;
+  --success: #315b42;
+  --shadow-hard: 4px 4px 0 var(--ink);
+  --shadow-accent: 4px 4px 0 var(--accent);
+  --font: Calibri, Carlito, Arial, sans-serif;
+  --space-1: 0.35rem;
+  --space-2: 0.65rem;
+  --space-3: 1rem;
+  --space-4: 1.4rem;
+  --space-5: 2rem;
+  --space-6: 3rem;
+  font-family: var(--font);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
