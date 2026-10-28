@@ -1,5 +1,166 @@
-:root{--ink:#24241f;--muted:#66645d;--line:#d4d4cf;--accent:#72283a;--paper:#f8f9f5}
-*{box-sizing:border-box} html,body{margin:0;padding:0}body{font-family:Calibri,'Carlito',Arial,sans-serif;color:var(--ink);font-size:10.4pt;line-height:1.47;background:#fff}
-.kicker{font-size:8pt;text-transform:uppercase;color:var(--accent);letter-spacing:.11em;font-weight:700}
-h1{font-size:26pt;font-weight:500;line-height:1.1;letter-spacing:-.025em;margin:10px 0 22px}h2{font-size:12pt;font-weight:700;margin:24px 0 8px;border-top:1px solid var(--line);padding-top:10px}h3{font-size:10.5pt;margin:14px 0 6px}p{margin:0 0 10px}table{width:100%;border-collapse:collapse;margin:15px 0 18px;font-size:9.5pt}th{text-align:left;text-transform:uppercase;font-size:8pt;color:var(--muted);letter-spacing:.04em;border-bottom:1.5px solid var(--ink);padding:9px 7px}td{padding:10px 7px;border-bottom:1px solid var(--line);vertical-align:top}th.num,td.num{text-align:right;white-space:nowrap} .meta{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin:16px 0 23px}.meta p{margin:0 0 4px}.label{font-size:8pt;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:4px}.rule{border-top:1px solid var(--line);padding-top:12px}.summary{width:44%;margin-left:auto}.summary .row{display:flex;justify-content:space-between;border-bottom:1px solid var(--line);padding:8px 0}.summary .total{font-size:15pt;font-weight:700;border-top:1.5px solid var(--ink);margin-top:4px}.small{font-size:8.7pt;color:var(--muted)}.signatures{display:grid;grid-template-columns:1fr 1fr;gap:36px;margin-top:30px;break-inside:avoid}.sigline{margin:25px 0 5px;border-bottom:1px solid #777}.block{white-space:pre-line}.breaksafe{break-inside:avoid}.accent{color:var(--accent)}
-@media print{thead{display:table-header-group}tr{break-inside:avoid}h2,h3{break-after:avoid}}
+:root {
+  --paper: #f1f2ef;
+  --paper-deep: #dfe4e2;
+  --surface: #f8f9f5;
+  --surface-raised: #fdfdf9;
+  --surface-muted: #e8e8e2;
+  --ink: #24241f;
+  --ink-soft: #66645d;
+  --line: rgba(36, 36, 31, 0.18);
+  --line-strong: rgba(36, 36, 31, 0.5);
+  --accent: #72283a;
+  --accent-dark: #823528;
+  --accent-wash: #f0e5e4;
+  --focus: #2458a6;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  border-top: 5px solid var(--accent);
+  padding-top: 12px;
+  background: var(--surface);
+  color: var(--ink);
+  font-family: Calibri, 'Carlito', Arial, sans-serif;
+  font-size: 10.4pt;
+  line-height: 1.5;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+.kicker {
+  display: table;
+  padding: 4px 8px;
+  border: 1px solid var(--ink);
+  background: var(--accent-wash);
+  box-shadow: 3px 3px 0 var(--ink);
+  color: var(--accent);
+  font-size: 8pt;
+  font-weight: 700;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+h1 {
+  margin: 12px 0 22px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--ink);
+  font-size: 27pt;
+  font-weight: 600;
+  line-height: 1.08;
+  letter-spacing: -0.035em;
+}
+h2 {
+  margin: 24px 0 8px;
+  padding-top: 9px;
+  border-top: 1px solid var(--line-strong);
+  color: var(--accent);
+  font-size: 11pt;
+  font-weight: 700;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+}
+h3 { margin: 14px 0 6px; font-size: 10.5pt; }
+p { margin: 0 0 10px; }
+table {
+  width: 100%;
+  margin: 15px 0 18px;
+  border: 1px solid var(--ink);
+  border-collapse: collapse;
+  background: var(--surface-raised);
+  font-size: 9.5pt;
+}
+th {
+  padding: 9px 7px;
+  border-bottom: 2px solid var(--ink);
+  background: var(--ink);
+  color: var(--surface-raised);
+  font-size: 8pt;
+  letter-spacing: 0.06em;
+  text-align: left;
+  text-transform: uppercase;
+}
+td { padding: 10px 7px; border-bottom: 1px solid var(--line); vertical-align: top; }
+tbody tr:nth-child(even) { background: var(--surface); }
+th.num, td.num { text-align: right; white-space: nowrap; }
+.meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 22px;
+  margin: 16px 0 23px;
+}
+.meta > div { padding-left: 10px; border-left: 2px solid var(--accent); }
+.meta p { margin: 0 0 4px; }
+.label {
+  margin-bottom: 4px;
+  color: var(--ink-soft);
+  font-size: 8pt;
+  letter-spacing: 0.075em;
+  text-transform: uppercase;
+}
+.rule { padding-top: 12px; border-top: 2px solid var(--ink); }
+.summary {
+  width: 48%;
+  margin: 16px 5px 18px auto;
+  padding: 7px 10px;
+  border: 1px solid var(--ink);
+  background: var(--accent-wash);
+  box-shadow: 4px 4px 0 var(--accent);
+  break-inside: avoid;
+}
+.summary .row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line-strong);
+}
+.summary .total {
+  margin: 5px -10px -7px;
+  padding: 10px;
+  border-top: 2px solid var(--ink);
+  border-bottom: 0;
+  background: var(--ink);
+  color: var(--surface-raised);
+  font-size: 15pt;
+  font-weight: 700;
+}
+.small { color: var(--ink-soft); font-size: 8.7pt; }
+.signatures {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 36px;
+  margin-top: 30px;
+  break-inside: avoid;
+}
+.signatures > div { padding-top: 8px; border-top: 2px solid var(--ink); }
+.signatures strong { color: var(--accent); }
+.sigline { margin: 25px 0 5px; border-bottom: 1px solid var(--ink); }
+.block { white-space: pre-line; }
+.breaksafe { break-inside: avoid; }
+.accent { color: var(--accent); }
+
+.master h1 {
+  margin-top: 0;
+  padding: 9px 0 12px 12px;
+  border-top: 5px solid var(--accent);
+  border-bottom: 2px solid var(--ink);
+  color: var(--accent);
+  font-size: 20pt;
+  letter-spacing: -0.025em;
+}
+.master h1 + p {
+  margin: 12px 4px 16px 0;
+  padding: 8px 10px;
+  border-left: 4px solid var(--accent);
+  background: var(--surface-muted);
+  box-shadow: 3px 3px 0 var(--ink);
+  font-size: 9pt;
+}
+.master h2 { margin-top: 18px; font-size: 10.5pt; break-after: avoid; }
+.master p { margin-bottom: 7px; orphans: 3; widows: 3; }
+.master strong { font-weight: 700; }
+
+@media print {
+  thead { display: table-header-group; }
+  tr { break-inside: avoid; }
+  h2, h3 { break-after: avoid; }
+}

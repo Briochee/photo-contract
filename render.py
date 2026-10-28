@@ -78,7 +78,7 @@ def export_pdfs(record, output_dir):
                          margin={'top':'0.62in','right':'0.65in','bottom':'0.62in','left':'0.65in'},
                          display_header_footer=True,
                          header_template='<span></span>',
-                         footer_template='<div style="font-size:8px;color:#777;width:100%;text-align:right;padding-right:45px">Page <span class="pageNumber"></span> of <span class="totalPages"></span></div>')
+                         footer_template='<div style="font-family:Calibri,Arial,sans-serif;font-size:8px;color:#72283a;width:100%;border-top:1px solid #d4d4cf;text-align:right;padding:6px 45px 0 0">Page <span class="pageNumber"></span> of <span class="totalPages"></span></div>')
                 exported[kind] = dest
                 page.close()
         finally:
