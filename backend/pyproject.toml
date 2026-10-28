@@ -1,0 +1,24 @@
+[project]
+name = "photography-document-studio"
+version = "1.0.0"
+requires-python = ">=3.12"
+description = "Local-first photography agreements, bookings, invoices, and PDFs"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = [".."]
+addopts = "-ra"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+src = ["app", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+# FastAPI dependency injection uses Depends(...) as a route default by design.
+ignore = ["B008"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
