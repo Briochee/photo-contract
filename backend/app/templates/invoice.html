@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="eyebrow">Photography services · Invoice</div>
+<h1>Invoice <span class="accent">{{ reference }}</span></h1>
+<div class="document-meta"><span>Booking {{ booking_ref }}</span><span>{{ invoice_date }} · Due {{ due_date }}</span><span class="status">{{ status_label }}</span></div>
+<section class="two-column">
+  <div><h2>From</h2><p><strong>{{ photographer.legal_name or photographer.business_name }}</strong><br>{{ photographer.mailing_address }}<br>{{ photographer.email }} · {{ photographer.phone }}</p></div>
+  <div><h2>Bill to</h2><p><strong>{{ client.legal_name }}</strong><br>{{ client.mailing_address }}<br>{{ client.primary_contact_name }}<br>{{ client.contact_email }}</p></div>
+</section>
+<section class="assignment-band"><span class="label">Assignment</span><strong>{{ event_name }}</strong><span>{{ event_date }} · Booking {{ booking_ref }}</span></section>
+<section><h2>Itemized charges</h2><table><thead><tr><th>Item</th><th class="numeric">Quantity</th><th class="numeric">Rate</th><th class="numeric">Amount</th></tr></thead><tbody>
+  {% for item in line_items %}<tr><td>{{ item.description }}</td><td class="numeric">{{ item.quantity }} {{ item.unit }}</td><td class="numeric">{{ money(item.unit_rate_cents) }}</td><td class="numeric">{{ money(item.amount_cents) }}</td></tr>{% endfor %}
+</tbody></table><div class="summary">
+  <div><span>Subtotal</span><strong>{{ money(subtotal_cents) }}</strong></div>
+  <div><span>{% if tax_mode == "none" %}Tax (not applied){% elif tax_mode == "rate" %}Tax ({{ tax_rate }}%){% else %}Tax (manually entered){% endif %}</span><strong>{{ money(tax_cents) }}</strong></div>
+  <div class="grand-total"><span>Total</span><strong>{{ money(total_cents) }}</strong></div>
+  <div><span>Amount paid</span><strong>{{ money(amount_paid_cents) }}</strong></div>
+  <div class="balance"><span>Balance due</span><strong>{{ money(balance_due_cents) }}</strong></div>
+</div></section>
+<section><h2>Payment</h2><p>{{ payment_instructions or "Payment instructions to be provided by Photographer." }}</p><p class="small">Payment terms are Net {{ payment_terms_days }}. Please include invoice reference {{ reference }} with payment.</p></section>
+{% if notes %}<section><h2>Notes</h2><p>{{ notes }}</p></section>{% endif %}
+{% endblock %}

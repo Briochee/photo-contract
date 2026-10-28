@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="eyebrow">Photography services · Master agreement</div>
+<div class="document-meta"><span>Agreement {{ reference }}</span><span>Effective {{ effective_date }}</span><span>Template {{ template_version }}</span><span class="status">{{ status_label }}</span></div>
+<article class="legal-copy">{{ legal_html }}</article>
+{% endblock %}
