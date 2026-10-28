@@ -1,52 +1,61 @@
-# Local Photography Document Studio
+# Photography Document Studio
 
-A self-contained, Python/Streamlit dashboard for generating a **Master Photography Services Agreement**, **Booking Confirmation**, and **Invoice**. PDFs are rendered from HTML/CSS using **Playwright Chromium**, not an external PDF service. The documents share a booking reference and invoice reference, and the pricing engine uses `Decimal` arithmetic.
+A local-first application for maintaining photography clients, agreements, bookings, invoices, and historical PDFs. The replacement interface uses React, Vite, and TypeScript; FastAPI, SQLite, SQLAlchemy, and Alembic provide local APIs and persistence. Jinja2 templates rendered by Playwright Chromium generate US Letter PDFs. No hosted service, external font, or telemetry is used.
 
-## Quick start
+## Quick Start
 
-Requires Python 3.10+ and a local Chromium installation for Playwright.
+See [docs/SETUP.md](docs/SETUP.md) for full installation, desktop launch, development, data migration, backup, and restore instructions. After installing Python and Node dependencies plus Playwright Chromium, launch the desktop app with:
 
 ```bash
-cd photography_documents_app
-python -m venv .venv
-# macOS/Linux: source .venv/bin/activate
-# Windows PowerShell: .venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-python -m playwright install chromium
-streamlit run app.py
+npm run desktop --prefix frontend
 ```
 
-Open the local Streamlit URL printed in the terminal (usually `http://localhost:8501`). No remotely hosted backend is needed. Streamlit is a local browser UI served by a Python process running on your machine.
+Electron builds the frontend and starts the local FastAPI backend automatically. For browser-based development with hot reload, run:
 
-## Workflow
+```bash
+python scripts/dev.py
+```
 
-1. Click **New booking** to allocate a matching `BK-YYYY-NNN` / `INV-YYYY-NNN` pair from the local SQLite reference counter.
-2. Enter photographer, client, assignment, coverage, and delivery details.
-3. Edit the **Agreed booking fees** table. These appear identically in the booking confirmation and invoice; edits to an already accepted booking require a separate mutual written agreement.
-4. Enter invoice-only extras, such as travel or overtime, **only after written approval**. The checkbox is required to generate documents. These items appear on the invoice, but not as unilateral amendments to the accepted booking confirmation.
-5. Enter the manually verified tax amount and invoice payment instructions.
-6. Save the record and generate PDFs. Download using the dashboard or locate files under `data/exports/BK-.../`.
-7. Later, load the saved booking, update permitted details, and regenerate.
+The Vite app is at `http://127.0.0.1:5173`; FastAPI docs are at `http://127.0.0.1:8000/docs`. To build and run the single-address local web app:
 
-## Data & architecture
+```bash
+npm run build --prefix frontend
+python scripts/start.py --open
+```
 
-- `app.py` — Streamlit dashboard, editing, and export controls.
-- `core.py` — Decimal math, approval validation, date logic, JSON persistence, and SQLite reference allocation.
-- `render.py` — template loading and Playwright PDF output.
-- `templates/` — Jinja HTML + print CSS (Letter format, page numbers).
-- `assets/contract_source.md` — **verbatim copy** of the attached master agreement; its master agreement section is populated without rewriting clauses. The separate booking template is intentionally rendered from structured data.
-- `assets/resume_design_library.md` — supplied visual reference, kept for future iteration.
-- `data/` — local saved JSON and generated PDFs (contains client information; keep private and back up securely).
-- `tests/` — pricing and validation tests (`pytest -q`).
+## Main Workflows
 
-## Visual and font decisions
+- Maintain client records and photographer defaults.
+- Draft and accept bookings with itemized charges and authorization evidence.
+- Record accepted amendments without rewriting prior snapshots.
+- Create invoices from agreed booking fees and approved expenses; record payments and explicit revisions.
+- Preview, generate, download, and retain versioned agreement, booking, and invoice PDFs.
+- Back up the SQLite database and generated documents locally.
 
-Layout follows the design library's restrained paper/charcoal palette, burgundy photography accent, square controls, fine rules, compact metadata, and editorial spacing. Legal document legibility takes priority over portfolio ornamentation. **Calibri** is the first-choice font in both dashboard and PDFs, with Carlito/Arial fallbacks. Calibri is proprietary and **not included** in the repository: it must already be installed on the computer where Chromium renders PDFs. The PDF only uses it when the host has it installed.
+Money calculations use integer USD cents with decimal-string quantities. Accepted bookings and issued invoices retain snapshots. The supplied agreement in `docs/reference/master_photography_services_agreement.md` remains the legal source; the design vocabulary comes from `docs/reference/resume_design_library.md`.
 
-## Legal cautions
+## Repository Map
 
-The attached source is marked **draft for review — New York law**. It contains a separate booking specimen and an internal checklist, which are **not** inserted into the Master Agreement PDF. The app does not validate contract enforceability, client authorization, sales tax applicability, or city/state freelance-worker requirements. Invoice-only extras require you to confirm separate written advance approval. PDF signature lines are blank for physical or external electronic signing. PDFs are not cryptographically signed. A new booking reference is allocated on creating the draft even if never saved, so gaps in the numbering sequence are normal. Dates must use ISO `YYYY-MM-DD`.
+```text
+backend/app/         FastAPI, SQLAlchemy models, services, templates, and API routes
+backend/alembic/     Database migrations
+backend/tests/       API, pricing, and legal-text regression tests
+frontend/src/        React pages, components, schemas, API client, and styles
+docs/reference/      Project-local legal and visual references
+scripts/             Local startup, migration, import, and restore commands
+data/                Private local database, settings, logs, and generated PDFs
+examples/            Fictional Playwright-generated agreement, booking, and invoice PDFs
+app.py, core.py      Optional legacy Streamlit sources; dependencies are in legacy/
+```
 
-## Privacy / offline notes
+## Existing Data and Privacy
 
-The app uses no cloud API, analytics, or network calls in document generation. The browser may serve local Streamlit pages; use your own firewall settings to restrict access. Google Fonts are **not required**; Calibri is selected locally. For fully offline installation, pre-install wheels and the Playwright Chromium browser before disconnecting.
+Run `python -m scripts.import_legacy` to import prior `data/BK-*.json` records, the reference counter, and associated PDFs. The importer does not remove its source files; inspect its report before continuing. The application stores client and financial data locally under `PHOTO_STUDIO_DATA_DIR` (default `data/`). Keep this directory, `.env`, and backup archives private and out of commits.
+
+## Sample PDFs
+
+`examples/` contains fictional documents generated by the production Jinja2/Playwright pipeline. To recreate them, move the existing files out of `examples/`, then run `python -m scripts.generate_examples`.
+
+## Verification
+
+Run backend checks with `python -m pytest -q tests backend/tests` and `python -m ruff check backend scripts`. Run frontend checks with `npm test --prefix frontend`, `npm run lint --prefix frontend`, and `npm run build --prefix frontend`. Playwright PDF generation additionally requires `python -m playwright install chromium`.
