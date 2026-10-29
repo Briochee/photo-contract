@@ -2,6 +2,7 @@
 
 import logging
 from logging.handlers import RotatingFileHandler
+from pathlib import Path
 
 from backend.app.config import DATA_DIR
 
@@ -23,6 +24,27 @@ def _logger(channel: str) -> logging.Logger:
     except OSError:
         logger.addHandler(logging.NullHandler())
     return logger
+
+
+def clear_log_history() -> bool:
+    """Remove rotated local logs and start fresh files for each configured log channel."""
+    cleared = True
+    for channel in ("activity", "requests"):
+        logger = logging.getLogger(channel)
+        for handler in logger.handlers:
+            if not isinstance(handler, RotatingFileHandler):
+                continue
+            log_path = Path(handler.baseFilename)
+            handler.acquire()
+            try:
+                handler.doRollover()
+                for previous in log_path.parent.glob(f"{log_path.name}.*"):
+                    previous.unlink(missing_ok=True)
+            except OSError:
+                cleared = False
+            finally:
+                handler.release()
+    return cleared
 
 
 activity = _logger("activity")

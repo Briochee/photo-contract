@@ -36,6 +36,12 @@ export function SettingsPage() {
       await queryClient.invalidateQueries({ queryKey: ['settings'] })
     },
   })
+  const clearData = useMutation({
+    mutationFn: api.clearAllData,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries()
+    },
+  })
   if (settings.isLoading) return <Loading />
   return (
     <>
@@ -45,7 +51,7 @@ export function SettingsPage() {
         description="Defaults apply to new records. Existing agreements, bookings, and invoices keep their saved snapshots."
       />
       <div className="stack">
-        <ErrorMessage error={settings.error || update.error} />
+        <ErrorMessage error={settings.error || update.error || clearData.error} />
         <Panel shadow>
           <div className="section-heading">
             <h2>Photographer profile</h2>
@@ -141,7 +147,10 @@ export function SettingsPage() {
               />
             </div>
             <div className="field field--wide">
-              <button className="button button--primary" disabled={update.isPending}>
+              <button
+                className="button button--primary"
+                disabled={update.isPending || clearData.isPending}
+              >
                 {update.isPending ? 'Saving…' : 'Save settings'}
               </button>
             </div>
@@ -192,6 +201,56 @@ export function SettingsPage() {
             <code>python scripts/restore_backup.py backup.zip /path/to/restored-data</code>, then
             set <code>PHOTO_STUDIO_DATA_DIR</code> to that directory.
           </p>
+        </Panel>
+        <Panel className="danger-panel">
+          <div className="section-heading">
+            <h2>Clear all history and data</h2>
+            <span className="eyebrow">Permanent action</span>
+          </div>
+          <p>
+            Remove all clients, contracts, bookings, invoices, payments, saved PDFs, photographer
+            profile details, application preferences, and imported legacy records. Existing
+            activity logs are cleared. Reference counters remain so previously used references are
+            never reused. This only affects the configured Contract Studio data folder; backups
+            and original source files stored elsewhere remain untouched.
+          </p>
+          <button
+            className="button button--danger"
+            type="button"
+            disabled={clearData.isPending || update.isPending}
+            onClick={() => {
+              const confirmed = window.confirm(
+                'This is irreversible.\n\nThis permanently removes all clients, contracts, bookings, invoices, payments, saved PDFs, your photographer profile, application preferences, imported legacy records, and existing activity logs from the configured Contract Studio data folder. Reference counters stay in place so previously used references are never reused. Download a backup first. Backups and original source files stored elsewhere are not affected.\n\nClear all history and data now?',
+              )
+              if (confirmed) clearData.mutate()
+            }}
+          >
+            {clearData.isPending ? 'Clearing local data…' : 'Clear all history and data'}
+          </button>
+          {clearData.data && (
+            <p
+              className={
+                clearData.data.local_files_cleared &&
+                clearData.data.database_compacted &&
+                clearData.data.logs_cleared
+                  ? 'inline-note'
+                  : 'error-box'
+              }
+              role={
+                clearData.data.local_files_cleared &&
+                clearData.data.database_compacted &&
+                clearData.data.logs_cleared
+                  ? 'status'
+                  : 'alert'
+              }
+            >
+              {clearData.data.local_files_cleared &&
+              clearData.data.database_compacted &&
+              clearData.data.logs_cleared
+                ? 'Local records, documents, settings, and activity logs have been cleared. Reference counters were retained.'
+                : 'Records were cleared, but some local files, database space, or logs could not be fully removed. Close other Contract Studio windows and retry the reset.'}
+            </p>
+          )}
         </Panel>
       </div>
     </>

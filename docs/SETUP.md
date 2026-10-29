@@ -130,6 +130,8 @@ python scripts/restore_backup.py backup.zip /path/to/restored-data
 
 Then set `PHOTO_STUDIO_DATA_DIR=/path/to/restored-data` in `.env` and restart. Backups contain personal and financial data; store them securely. The optional former Streamlit UI requires `legacy/requirements.txt` and `streamlit run app.py`.
 
+Settings also provides **Clear all history and data**. After confirmation, it removes business records, profile/preferences, the generated-document library, imported legacy files in the configured data directory, and current application logs. It retains reference counters to prevent reused identifiers. Downloaded backups and original source files outside the configured data directory are not affected.
+
 ## Sample Documents
 
 The `examples/` directory contains fictional Chromium-generated agreement, booking, and invoice PDFs. To recreate them, move the existing PDFs out of that directory, then run:

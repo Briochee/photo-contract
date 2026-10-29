@@ -186,6 +186,13 @@ export type Settings = {
   preferences: { pdf_page_size: string }
 }
 
+export type DataResetResult = {
+  local_files_cleared: boolean
+  database_compacted: boolean
+  logs_cleared: boolean
+  reference_sequences_retained: boolean
+}
+
 export type Dashboard = {
   active_bookings: number
   upcoming_assignments: Array<{

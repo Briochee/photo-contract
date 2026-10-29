@@ -3,6 +3,7 @@ import type {
   Booking,
   BookingPayload,
   Client,
+  DataResetResult,
   Dashboard,
   DocumentRequest,
   ExpenseInput,
@@ -122,6 +123,11 @@ export const api = {
   deleteAgreement: (id: number) => request<void>(`/api/agreements/${id}`, json('DELETE')),
   settings: () => request<Settings>('/api/settings'),
   updateSettings: (value: Profile) => request<Settings>('/api/settings', json('PATCH', value)),
+  clearAllData: () =>
+    request<DataResetResult>(
+      '/api/settings/data',
+      json('DELETE', { confirmation: 'CLEAR_ALL_DATA' }),
+    ),
   documents: () => request<GeneratedDocument[]>('/api/documents'),
   deleteDocument: (id: number) => request<void>(`/api/documents/${id}`, json('DELETE')),
   previewDocument: async (value: DocumentRequest) => {

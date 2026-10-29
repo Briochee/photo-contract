@@ -1,4 +1,4 @@
-Version: 16
+Version: 17
 
 # Repository Guidelines
 
@@ -26,6 +26,8 @@ Bookings support any photography session or event. Keep event types free-form, w
 Client detail pages may delete an agreement only when no booking references it. Keep generated PDF copies in the document library after deleting the agreement record.
 
 Only draft bookings may be deleted. Delete their unpaid draft invoices with them and detach, but preserve, generated PDFs; retain accepted bookings and bookings with issued invoices or payment records. Keep reference sequences intact so deleted references are never reused.
+
+Settings may clear all local business records, profile/preferences, generated PDFs, imported legacy files, and logs only after explicit confirmation. Keep reference sequences to prevent reusing identifiers and never remove backups or original source files outside the configured data directory.
 
 The document library can delete a saved PDF and its library record while retaining the related client, booking, agreement, or invoice. Confirm permanent file removal. Draft invoices may be prepared and issued before acceptance evidence is recorded; issuing an invoice never marks contractual acceptance. Agreement and booking PDFs remain drafts until written acceptance is recorded, while issued invoice snapshots are immutable and corrected through replacement revisions.
 

@@ -11,6 +11,10 @@ class APIModel(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
 
 
+class ClearAllDataInput(APIModel):
+    confirmation: Literal["CLEAR_ALL_DATA"]
+
+
 class ClientInput(APIModel):
     legal_name: str = Field(min_length=1, max_length=200)
     display_name: str | None = Field(default=None, max_length=200)
