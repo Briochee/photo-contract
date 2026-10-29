@@ -114,7 +114,7 @@ npm run format:check --prefix frontend
 npm run build --prefix frontend
 ```
 
-Backend tests use isolated in-memory SQLite databases. PDF rendering tests require the installed Playwright Chromium binary. Master agreements and booking confirmations include AcroForm signature, date, and signer-detail fields; complete them in a PDF reader that supports AcroForms and digital-signature fields, such as Adobe Acrobat Reader. Save the signed copy separately and record acceptance evidence in the app. These fields do not independently verify signer identity or mark a record accepted. Invoices do not require signatures.
+Backend tests use isolated in-memory SQLite databases. PDF rendering tests require the installed Playwright Chromium binary. Master agreements and booking confirmations include AcroForm text inputs for signer name, title, typed signature, and date, alongside certificate-based signature fields. Click the typed-signature field in a PDF reader that supports AcroForms to enter a name directly; use that reader's signing tool to draw or apply a certificate-based signature. Save the signed copy separately and record acceptance evidence in the app. These fields do not independently verify signer identity or mark a record accepted. Invoices do not require signatures.
 
 ## Existing Streamlit Data, Backup, and Restore
 

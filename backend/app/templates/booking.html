@@ -35,7 +35,11 @@
         <div class="pdf-form-field" data-pdf-field="booking.photographer.signer_name_title" data-pdf-field-type="text" data-pdf-field-label="Photographer signer name and title"></div>
       </div>
       <div class="signature-field-row">
-        <span>Signature:</span>
+        <span>Typed signature:</span>
+        <div class="pdf-form-field pdf-signature-entry-field" data-pdf-field="booking.photographer.typed_signature" data-pdf-field-type="text" data-pdf-field-label="Photographer typed signature"></div>
+      </div>
+      <div class="signature-field-row">
+        <span>Digital signature:</span>
         <div class="pdf-form-field pdf-signature-field" data-pdf-field="booking.photographer.signature" data-pdf-field-type="signature" data-pdf-field-label="Photographer digital signature"></div>
       </div>
       <div class="signature-field-row">
@@ -50,7 +54,11 @@
         <div class="pdf-form-field" data-pdf-field="booking.client.authorized_representative" data-pdf-field-type="text" data-pdf-field-label="Client authorized representative and title"></div>
       </div>
       <div class="signature-field-row">
-        <span>Signature:</span>
+        <span>Typed signature:</span>
+        <div class="pdf-form-field pdf-signature-entry-field" data-pdf-field="booking.client.typed_signature" data-pdf-field-type="text" data-pdf-field-label="Client typed signature"></div>
+      </div>
+      <div class="signature-field-row">
+        <span>Digital signature:</span>
         <div class="pdf-form-field pdf-signature-field" data-pdf-field="booking.client.signature" data-pdf-field-type="signature" data-pdf-field-label="Client digital signature"></div>
       </div>
       <div class="signature-field-row">
@@ -59,6 +67,6 @@
       </div>
     </section>
   </div>
-  <p class="form-instructions">Complete the signature and date fields using a PDF reader that supports form fields and digital signatures.</p>
+  <p class="form-instructions">Select the typed-signature field to enter a name directly. Use your PDF reader's signing tool to draw or apply a certificate-based signature.</p>
 </section>
 {% endblock %}

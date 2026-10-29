@@ -41,7 +41,7 @@ td { padding: 8px 6px; border-bottom: 1px solid rgba(36,36,31,.18); vertical-ali
 .signature-field-row { margin-top: 11px; }
 .signature-field-row > span { color: #66645d; font-size: 8pt; }
 .pdf-form-field { height: 23px; border-bottom: 1px solid #24241f; }
-.pdf-signature-field { height: 34px; }
+.pdf-signature-field, .pdf-signature-entry-field { height: 34px; }
 .form-instructions { margin-top: 25px; color: #66645d; font-size: 8pt; text-align: center; }
 .legal-copy h1, .legal-copy h2 { break-after: avoid; page-break-after: avoid; }
 .legal-copy h2 { margin-top: 18px; }

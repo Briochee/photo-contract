@@ -96,13 +96,7 @@ def test_booking_invoice_payments_and_immutability(client) -> None:
 
     agreement_response = client.post(
         "/api/agreements",
-        json={
-            "client_id": client_id,
-            "effective_date": "2026-10-28",
-            "accepted": True,
-            "accepted_date": "2026-10-28",
-            "acceptance_reference": "Signed master agreement, page 8",
-        },
+        json={"client_id": client_id},
     )
     assert agreement_response.status_code == 201
     agreement = agreement_response.json()
@@ -116,13 +110,16 @@ def test_booking_invoice_payments_and_immutability(client) -> None:
     agreement_fields = agreement_reader.get_fields() or {}
     assert set(agreement_fields) == {
         "agreement.photographer.signature",
+        "agreement.photographer.typed_signature",
         "agreement.photographer.date",
         "agreement.photographer.signer_name_title",
         "agreement.client.authorized_representative",
         "agreement.client.signature",
+        "agreement.client.typed_signature",
         "agreement.client.date",
     }
     assert agreement_fields["agreement.client.signature"]["/FT"] == "/Sig"
+    assert agreement_fields["agreement.client.typed_signature"]["/FT"] == "/Tx"
     assert "16. Signatures" in agreement_reader.pages[-1].extract_text()
     assert all("16. Signatures" not in page.extract_text() for page in agreement_reader.pages[:-1])
     agreement_widgets = {
@@ -143,6 +140,7 @@ def test_booking_invoice_payments_and_immutability(client) -> None:
         {
             "agreement.photographer.date": "2026-10-29",
             "agreement.client.authorized_representative": "Jordan Lee, Events Director",
+            "agreement.client.typed_signature": "Jordan Lee",
         },
         auto_regenerate=False,
     )
@@ -154,6 +152,7 @@ def test_booking_invoice_payments_and_immutability(client) -> None:
         filled_fields["agreement.client.authorized_representative"]["/V"]
         == "Jordan Lee, Events Director"
     )
+    assert filled_fields["agreement.client.typed_signature"]["/V"] == "Jordan Lee"
 
     booking_payload = _booking_payload(client_id)
     booking_payload["agreement_id"] = agreement["id"]
@@ -178,13 +177,16 @@ def test_booking_invoice_payments_and_immutability(client) -> None:
     booking_fields = booking_reader.get_fields() or {}
     assert set(booking_fields) == {
         "booking.photographer.signature",
+        "booking.photographer.typed_signature",
         "booking.photographer.date",
         "booking.photographer.signer_name_title",
         "booking.client.authorized_representative",
         "booking.client.signature",
+        "booking.client.typed_signature",
         "booking.client.date",
     }
     assert booking_fields["booking.client.signature"]["/FT"] == "/Sig"
+    assert booking_fields["booking.client.typed_signature"]["/FT"] == "/Tx"
     assert "Acceptance" in booking_reader.pages[-1].extract_text()
     booking_widgets = {
         annotation.get_object()["/T"]: annotation.get_object()["/Rect"]

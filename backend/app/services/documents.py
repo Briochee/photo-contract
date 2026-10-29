@@ -269,7 +269,7 @@ def render_pdf(document_type: DocumentType, context: dict[str, Any]) -> bytes:
             "Chromium could not render the PDF. Check the local Playwright browser installation."
         ) from exc
     except (ValueError, TypeError, KeyError) as exc:
-        raise RuntimeError("The PDF's signature fields could not be prepared safely.") from exc
+        raise RuntimeError("The PDF's fillable fields could not be prepared safely.") from exc
 
 
 def _agreement_html(legal: str, snapshot_data: dict[str, Any]) -> str:

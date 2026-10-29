@@ -1,4 +1,4 @@
-Version: 22
+Version: 23
 
 # Repository Guidelines
 
@@ -33,7 +33,7 @@ Settings may clear all local business records, profile/preferences, generated PD
 
 The document library can delete a saved PDF and its library record while retaining the related client, booking, agreement, or invoice. Confirm permanent file removal. Draft invoices may be prepared and issued before acceptance evidence is recorded; issuing an invoice never marks contractual acceptance. Saved agreement and booking PDFs remain pending until written acceptance is recorded; previews remain drafts. Issued invoice snapshots are immutable and corrected through replacement revisions.
 
-Electron PDF previews use Chromium's local PDF viewer. Keep plugin support enabled for the app and permit popup windows only for blob URLs created by the local backend origin. Master agreement and booking confirmation PDFs contain AcroForm signature/date fields added after Chromium rendering; invoices do not require signatures. The app records acceptance evidence separately and does not verify identity from a filled PDF.
+Electron PDF previews use Chromium's local PDF viewer. Keep plugin support enabled for the app and permit popup windows only for blob URLs created by the local backend origin. Master agreement and booking confirmation PDFs contain AcroForm text inputs for signer details, typed signatures, and dates, plus certificate-based signature fields. Invoices do not require signatures. The app records acceptance evidence separately and does not verify identity from a filled PDF.
 
 Master agreements move from draft to pending when their PDF is saved, then finalized when a signed PDF is uploaded or written-acceptance evidence is recorded. Keep the effective date empty until finalization; the last-signature date is the effective date, and `confirmed` is an explicit evidence override. Preserve prior agreement text snapshots when the legal template version changes. Saved unsigned agreement PDFs should show as pending signature in the document library.
 

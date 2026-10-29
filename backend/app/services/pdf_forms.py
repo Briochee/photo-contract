@@ -1,4 +1,4 @@
-"""Add standard PDF signature and text fields to Chromium-rendered documents."""
+"""Add fillable signer text inputs and certificate-signature fields to Chromium PDFs."""
 
 import math
 import re
