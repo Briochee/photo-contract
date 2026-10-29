@@ -283,7 +283,8 @@ def render_pdf(document_type: DocumentType, context: dict[str, Any]) -> bytes:
 
 def _agreement_html(legal: str, snapshot_data: dict[str, Any]) -> str:
     """Render Markdown while keeping the final signature section on a fillable page."""
-    markdown = MarkdownIt("commonmark", {"html": False, "typographer": False}).disable("image")
+    markdown = MarkdownIt("commonmark", {"html": False, "typographer": False})
+    markdown.renderer.rules["image"] = _omit_markdown_image
     headings = list(_SIGNATURE_HEADING.finditer(legal))
     if headings:
         heading = headings[-1]
@@ -342,6 +343,11 @@ def _substitute_agreement_tokens(source: str, snapshot_data: dict[str, Any]) -> 
         return match.group(0) if value is None else _md_text(value)
 
     return _AGREEMENT_TOKEN.sub(replace, source)
+
+
+def _omit_markdown_image(*_args: Any, **_kwargs: Any) -> str:
+    """Omit Markdown image tokens so templates cannot embed external or local resources."""
+    return ""
 
 
 def generate_document(
