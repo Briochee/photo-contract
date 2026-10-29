@@ -1,7 +1,5 @@
 # MASTER PHOTOGRAPHY SERVICES AGREEMENT
 
-**Draft for review — New York law.** This template is not legal advice. Have New York counsel review before signature, especially the cancellation, equipment-damage, and liability provisions.
-
 **Effective Date:** [Date]
 
 **Photographer:** [Legal name / business name]  
