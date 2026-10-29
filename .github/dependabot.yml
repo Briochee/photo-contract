@@ -1,0 +1,48 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: America/New_York
+    open-pull-requests-limit: 5
+    groups:
+      npm-minor-and-patch:
+        applies-to: version-updates
+        update-types:
+          - minor
+          - patch
+
+  # The root requirements files include the backend and packaging dependencies.
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: America/New_York
+    open-pull-requests-limit: 5
+    groups:
+      pip-minor-and-patch:
+        applies-to: version-updates
+        update-types:
+          - minor
+          - patch
+
+  # Keep the optional Streamlit fallback dependencies up to date separately.
+  - package-ecosystem: pip
+    directory: /legacy
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: America/New_York
+    open-pull-requests-limit: 5
+    groups:
+      legacy-pip-minor-and-patch:
+        applies-to: version-updates
+        update-types:
+          - minor
+          - patch
