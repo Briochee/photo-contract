@@ -39,8 +39,9 @@ export function DocumentsPage() {
       <Panel>
         <ErrorMessage error={documents.error || removeDocument.error} />
         <p className="muted">
-          Draft PDFs are working copies. Final PDFs were saved after written acceptance was recorded
-          or an invoice was issued. Deleting a PDF here does not change its source record.
+          Draft PDFs are working copies. Agreement PDFs awaiting signatures show as pending. Final
+          PDFs are accepted or issued versions. Deleting a PDF here does not change its source
+          record.
         </p>
         <div className="filter-row filter-row--single">
           <div className="field">
@@ -93,7 +94,15 @@ export function DocumentsPage() {
                     <td>v{document.version}</td>
                     <td>{dateLabel(document.created_at)}</td>
                     <td>
-                      <Status value={document.status === 'final' ? 'Final PDF' : 'Draft PDF'} />
+                      <Status
+                        value={
+                          document.status === 'pending'
+                            ? 'Pending signature'
+                            : document.status === 'final'
+                              ? 'Final PDF'
+                              : 'Draft PDF'
+                        }
+                      />
                     </td>
                     <td className="action-cell">
                       <button

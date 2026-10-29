@@ -132,6 +132,8 @@ Then set `PHOTO_STUDIO_DATA_DIR=/path/to/restored-data` in `.env` and restart. B
 
 Settings also provides **Clear all history and data**. After confirmation, it removes business records, profile/preferences, the generated-document library, imported legacy files in the configured data directory, and current application logs. It retains reference counters to prevent reused identifiers. Downloaded backups and original source files outside the configured data directory are not affected.
 
+Master agreements move from draft to pending when their PDF is saved to the document library. The effective date remains empty until finalization; it is set to the date of the last signature. Finalize an agreement by uploading the signed PDF or recording that date with a reference (or the explicit `confirmed` override). Unsigned agreement PDFs show as pending signature. Uploaded signed PDFs are stored as separate immutable document versions.
+
 ## Sample Documents
 
 The `examples/` directory contains fictional Chromium-generated agreement, booking, and invoice PDFs. To recreate them, move the existing PDFs out of that directory, then run:

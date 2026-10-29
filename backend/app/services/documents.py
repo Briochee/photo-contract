@@ -83,9 +83,13 @@ def document_context(
             "photographer_name": _person_name(source["photographer"]),
             "client_name": source["client"]["legal_name"],
             "template_version": agreement.template_version,
-            "status_label": "Accepted agreement"
-            if agreement.status == "accepted"
-            else "Draft preview",
+            "status_label": (
+                "Finalized agreement"
+                if agreement.status in {"accepted", "finalized"}
+                else "Pending signature"
+                if agreement.status == "pending"
+                else "Draft preview"
+            ),
             "legal_html": Markup(legal_html),
         }
         return agreement.agreement_ref, source["client"]["legal_name"], context, agreement.status
@@ -108,7 +112,8 @@ def document_context(
         if booking.agreement:
             data["agreement_date"] = (
                 booking.agreement.effective_date.isoformat()
-                if booking.agreement.status == "accepted"
+                if booking.agreement.status in {"accepted", "finalized"}
+                and booking.agreement.effective_date is not None
                 else None
             )
         approved = [
@@ -304,6 +309,10 @@ def generate_document(
         reference, _client_name, context, entity_status = document_context(
             session, document_type, entity_id
         )
+        promote_agreement_to_pending = document_type == "agreement" and entity_status == "draft"
+        if promote_agreement_to_pending:
+            context["status_label"] = "Pending signature"
+            entity_status = "pending"
         if not _REFERENCE.fullmatch(reference):
             raise ValueError("The generated document reference is not a safe filename")
         type_slug = {
@@ -353,13 +362,23 @@ def generate_document(
             invoice_id=entity_id if document_type == "invoice" else None,
             reference=reference,
             version=version,
-            status="final" if entity_status in {"accepted", "issued"} else "draft",
+            status=(
+                "final"
+                if entity_status in {"accepted", "finalized", "issued"}
+                else "pending"
+                if document_type == "agreement" and entity_status == "pending"
+                else "draft"
+            ),
             file_path=str(destination),
             content_hash=hashlib.sha256(content).hexdigest(),
             template_version=str(context.get("template_version", TEMPLATE_VERSION)),
             source_snapshot_json=source_json,
         )
         session.add(document)
+        if promote_agreement_to_pending:
+            agreement = session.get(MasterAgreement, entity_id)
+            if agreement is not None:
+                agreement.status = "pending"
         session.commit()
     except Exception:
         session.rollback()

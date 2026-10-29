@@ -72,7 +72,7 @@ def booking_values(booking: Booking) -> dict[str, Any]:
         "agreement_id": booking.agreement_id,
         "agreement_date": (
             _date(booking.agreement.effective_date)
-            if booking.agreement.status == "accepted"
+            if booking.agreement.status in {"accepted", "finalized"}
             else None
         )
         if booking.agreement

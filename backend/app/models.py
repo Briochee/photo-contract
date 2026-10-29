@@ -80,7 +80,7 @@ class MasterAgreement(TimestampMixin, Base):
     photographer_profile_id: Mapped[int] = mapped_column(
         ForeignKey("photographer_profiles.id", ondelete="RESTRICT"), nullable=False
     )
-    effective_date: Mapped[date] = mapped_column(Date, nullable=False)
+    effective_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     status: Mapped[str] = mapped_column(String(20), default="draft", nullable=False)
     template_version: Mapped[str] = mapped_column(String(32), nullable=False)
     legal_text_hash: Mapped[str] = mapped_column(String(64), nullable=False)

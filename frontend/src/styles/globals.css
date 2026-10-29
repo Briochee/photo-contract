@@ -277,10 +277,15 @@ th.numeric {
 .status--proposed {
   color: var(--ink-soft);
 }
+.status--pending,
+.status--pending_signature {
+  color: var(--accent-blue);
+}
 .status--accepted,
 .status--paid,
 .status--approved,
-.status--final {
+.status--final,
+.status--finalized {
   color: var(--success);
 }
 .status--issued,
@@ -587,6 +592,31 @@ th.numeric {
   max-width: 72ch;
   margin-bottom: 0;
 }
+.agreement-finalization {
+  display: grid;
+  gap: 0.85rem;
+  border-top: 1px solid var(--line);
+  padding-top: 1rem;
+}
+.agreement-finalization h3 {
+  margin: 0;
+}
+.agreement-finalize-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr) max-content;
+  align-items: end;
+  gap: 0.8rem;
+}
+.agreement-reference-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content max-content;
+  align-items: end;
+  gap: 0.8rem;
+}
+.agreement-finalize-grid > .button,
+.agreement-reference-row > .button {
+  white-space: nowrap;
+}
 .settings-list {
   display: grid;
   gap: 0.7rem;
@@ -744,6 +774,19 @@ th.numeric {
     grid-column: 1 / -1;
     justify-self: start;
   }
+  .agreement-finalize-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .agreement-finalize-grid > .button {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+  .agreement-reference-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .agreement-reference-row > .field {
+    grid-column: 1 / -1;
+  }
 }
 @media (max-width: 560px) {
   .metric-grid {
@@ -791,6 +834,15 @@ th.numeric {
     flex-wrap: wrap;
   }
   .acceptance-fields > .button {
+    grid-column: auto;
+    justify-self: stretch;
+  }
+  .agreement-finalize-grid,
+  .agreement-reference-row {
+    grid-template-columns: 1fr;
+  }
+  .agreement-finalize-grid > .button,
+  .agreement-reference-row > .button {
     grid-column: auto;
     justify-self: stretch;
   }

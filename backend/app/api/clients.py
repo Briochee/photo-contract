@@ -53,7 +53,7 @@ def get_client(client_id: int, session: Session = Depends(get_session)):
             {
                 "id": row.id,
                 "agreement_ref": row.agreement_ref,
-                "effective_date": row.effective_date.isoformat(),
+                "effective_date": row.effective_date.isoformat() if row.effective_date else None,
                 "status": row.status,
                 "template_version": row.template_version,
             }

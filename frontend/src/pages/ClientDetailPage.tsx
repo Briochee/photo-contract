@@ -24,8 +24,9 @@ export function ClientDetailPage() {
   const clientId = Number(useParams().clientId)
   const queryClient = useQueryClient()
   const [editing, setEditing] = useState(false)
-  const [lastSignatureDate, setLastSignatureDate] = useState(todayIso())
+  const [signedDate, setSignedDate] = useState(todayIso())
   const [acceptanceReference, setAcceptanceReference] = useState('')
+  const [signedCopy, setSignedCopy] = useState<File | null>(null)
   const [agreementId, setAgreementId] = useState<number | null>(null)
   const client = useQuery({
     queryKey: ['client', clientId],
@@ -37,6 +38,12 @@ export function ClientDetailPage() {
   useEffect(() => {
     if (client.data) form.reset(client.data)
   }, [client.data, form])
+  const selectAgreement = (selectedId: number) => {
+    setSignedDate(todayIso())
+    setAcceptanceReference('')
+    setSignedCopy(null)
+    setAgreementId(selectedId)
+  }
 
   const refresh = async () => {
     await queryClient.invalidateQueries({ queryKey: ['client', clientId] })
@@ -50,20 +57,30 @@ export function ClientDetailPage() {
     },
   })
   const createAgreement = useMutation({
-    mutationFn: () =>
-      api.createAgreement({ client_id: clientId, effective_date: todayIso(), accepted: false }),
+    mutationFn: () => api.createAgreement({ client_id: clientId }),
     onSuccess: async (agreement) => {
-      setAgreementId(agreement.id)
+      selectAgreement(agreement.id)
       await refresh()
     },
   })
-  const acceptAgreement = useMutation({
-    mutationFn: () =>
-      api.acceptAgreement(agreementId!, {
-        accepted_date: lastSignatureDate,
-        acceptance_reference: acceptanceReference,
+  const finalizeAgreement = useMutation({
+    mutationFn: (evidenceReference: string) =>
+      api.finalizeAgreement(agreementId!, {
+        signed_date: signedDate,
+        evidence_reference: evidenceReference,
       }),
     onSuccess: refresh,
+  })
+  const uploadSignedCopy = useMutation({
+    mutationFn: (file: File) => api.uploadSignedAgreement(agreementId!, signedDate, file),
+    onSuccess: async () => {
+      setSignedCopy(null)
+      await Promise.all([
+        refresh(),
+        queryClient.invalidateQueries({ queryKey: ['documents'] }),
+        queryClient.invalidateQueries({ queryKey: ['dashboard'] }),
+      ])
+    },
   })
   const deleteAgreement = useMutation({
     mutationFn: (id: number) => api.deleteAgreement(id),
@@ -87,8 +104,11 @@ export function ClientDetailPage() {
   const generate = useMutation({
     mutationFn: () => api.generateDocument({ document_type: 'agreement', entity_id: agreementId! }),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['documents'] })
-      await refresh()
+      await Promise.all([
+        refresh(),
+        queryClient.invalidateQueries({ queryKey: ['documents'] }),
+        queryClient.invalidateQueries({ queryKey: ['dashboard'] }),
+      ])
     },
   })
 
@@ -119,7 +139,8 @@ export function ClientDetailPage() {
           error={
             update.error ||
             createAgreement.error ||
-            acceptAgreement.error ||
+            finalizeAgreement.error ||
+            uploadSignedCopy.error ||
             deleteAgreement.error ||
             deleteBooking.error ||
             generate.error
@@ -204,20 +225,28 @@ export function ClientDetailPage() {
         </Panel>
         <Panel>
           <div className="section-heading">
-            <h2>Contracts</h2>
-            <span className="muted">Master agreements · controlled legal template</span>
+            <div>
+              <h2>Contracts</h2>
+              <span className="muted">Draft → pending signature → finalized</span>
+            </div>
+            <button
+              className="button"
+              type="button"
+              disabled={createAgreement.isPending}
+              onClick={() => createAgreement.mutate()}
+            >
+              {createAgreement.isPending ? 'Creating…' : 'Create contract'}
+            </button>
           </div>
           {!record.agreements.length ? (
-            <p className="muted">
-              No agreement record yet. The legal text is kept as a controlled template.
-            </p>
+            <p className="muted">No contract yet. Create one from this client’s saved details.</p>
           ) : (
             <div className="table-wrap">
               <table>
                 <thead>
                   <tr>
                     <th>Reference</th>
-                    <th>Agreement date</th>
+                    <th>Last signature</th>
                     <th>Status</th>
                     <th>Template</th>
                     <th>Actions</th>
@@ -228,12 +257,16 @@ export function ClientDetailPage() {
                     <tr key={agreement.id}>
                       <td>{agreement.agreement_ref}</td>
                       <td>
-                        {agreement.status === 'accepted'
+                        {agreement.status === 'finalized'
                           ? dateLabel(agreement.effective_date)
-                          : 'Pending signature'}
+                          : '—'}
                       </td>
                       <td>
-                        <Status value={agreement.status} />
+                        <Status
+                          value={
+                            agreement.status === 'pending' ? 'Pending signature' : agreement.status
+                          }
+                        />
                       </td>
                       <td>{agreement.template_version}</td>
                       <td>
@@ -241,7 +274,7 @@ export function ClientDetailPage() {
                           <button
                             className="text-button"
                             type="button"
-                            onClick={() => setAgreementId(agreement.id)}
+                            onClick={() => selectAgreement(agreement.id)}
                           >
                             Select
                           </button>
@@ -250,10 +283,14 @@ export function ClientDetailPage() {
                             type="button"
                             disabled={
                               deleteAgreement.isPending ||
-                              record.bookings.some((booking) => booking.agreement_id === agreement.id)
+                              record.bookings.some(
+                                (booking) => booking.agreement_id === agreement.id,
+                              )
                             }
                             title={
-                              record.bookings.some((booking) => booking.agreement_id === agreement.id)
+                              record.bookings.some(
+                                (booking) => booking.agreement_id === agreement.id,
+                              )
                                 ? 'This agreement is linked to a booking.'
                                 : undefined
                             }
@@ -280,97 +317,116 @@ export function ClientDetailPage() {
               <PdfPreview
                 key={selectedAgreement.id}
                 request={{ document_type: 'agreement', entity_id: selectedAgreement.id }}
-                leadingAction={
-                  <button
-                    className="button"
-                    disabled={createAgreement.isPending}
-                    onClick={() => createAgreement.mutate()}
-                  >
-                    Create draft agreement
-                  </button>
-                }
                 trailingAction={
-                  <button
-                    className="button button--primary"
-                    onClick={() => generate.mutate()}
-                    disabled={generate.isPending}
-                  >
-                    {generate.isPending
-                      ? 'Saving…'
-                      : selectedAgreement.status === 'accepted'
-                        ? 'Save final PDF version'
-                        : 'Save draft PDF'}
-                  </button>
+                  selectedAgreement.status !== 'finalized' && (
+                    <button
+                      className="button button--primary"
+                      onClick={() => generate.mutate()}
+                      disabled={generate.isPending}
+                    >
+                      {generate.isPending
+                        ? 'Saving…'
+                        : selectedAgreement.status === 'draft'
+                          ? 'Save PDF and mark pending'
+                          : 'Save another PDF version'}
+                    </button>
+                  )
                 }
               />
             ) : (
-              <div className="agreement-action-row">
-                <button
-                  className="button"
-                  disabled={createAgreement.isPending}
-                  onClick={() => createAgreement.mutate()}
-                >
-                  Create draft agreement
-                </button>
-              </div>
+              <p className="muted">Select a contract to preview or save its PDF.</p>
             )}
-            {selectedAgreement?.status === 'draft' && (
-              <>
-                <div className="acceptance-fields">
+            {selectedAgreement?.status === 'pending' && (
+              <div className="agreement-finalization">
+                <h3>Finalize contract</h3>
+                <div className="agreement-finalize-grid">
                   <div className="field">
                     <label htmlFor="last-signature-date">Date of last signature</label>
                     <input
                       id="last-signature-date"
                       type="date"
-                      value={lastSignatureDate}
-                      onChange={(event) => setLastSignatureDate(event.target.value)}
+                      value={signedDate}
+                      onChange={(event) => setSignedDate(event.target.value)}
                     />
-                    <small className="field-hint">
-                      This date becomes the agreement’s effective date.
-                    </small>
                   </div>
                   <div className="field">
-                    <label htmlFor="acceptance-ref">Signed agreement evidence</label>
+                    <label htmlFor="signed-copy">Upload signed PDF</label>
+                    <input
+                      id="signed-copy"
+                      type="file"
+                      accept="application/pdf,.pdf"
+                      onChange={(event) => setSignedCopy(event.target.files?.[0] ?? null)}
+                    />
+                    <small className="field-hint">PDF only, up to 25 MB.</small>
+                  </div>
+                  <button
+                    className="button button--primary"
+                    type="button"
+                    disabled={!signedCopy || uploadSignedCopy.isPending}
+                    onClick={() => signedCopy && uploadSignedCopy.mutate(signedCopy)}
+                  >
+                    {uploadSignedCopy.isPending ? 'Uploading…' : 'Upload signed copy & finalize'}
+                  </button>
+                </div>
+                <div className="agreement-reference-row">
+                  <div className="field">
+                    <label htmlFor="acceptance-ref">Or record an acceptance reference</label>
                     <input
                       id="acceptance-ref"
                       value={acceptanceReference}
                       onChange={(event) => setAcceptanceReference(event.target.value)}
-                      placeholder="Signed copy location or email record"
+                      placeholder="Email thread or signed-copy location"
                     />
-                    <small className="field-hint">
-                      Record where the signed agreement is stored.
-                    </small>
                   </div>
                   <button
                     className="button"
-                    disabled={acceptAgreement.isPending || !acceptanceReference.trim()}
-                    onClick={() => acceptAgreement.mutate()}
+                    type="button"
+                    disabled={!acceptanceReference.trim() || finalizeAgreement.isPending}
+                    onClick={() => finalizeAgreement.mutate(acceptanceReference.trim())}
                   >
-                    Record signed agreement
+                    {finalizeAgreement.isPending ? 'Finalizing…' : 'Finalize with reference'}
+                  </button>
+                  <button
+                    className="button button--quiet"
+                    type="button"
+                    disabled={finalizeAgreement.isPending}
+                    onClick={() => {
+                      const confirmed = window.confirm(
+                        'This records that you have confirmed the agreement outside Contract Studio. The app does not verify the signatures. Finalize this contract as confirmed?',
+                      )
+                      if (confirmed) finalizeAgreement.mutate('confirmed')
+                    }}
+                  >
+                    Finalize as confirmed
                   </button>
                 </div>
                 <p className="muted agreement-help">
-                  A draft PDF is for review and can be prepared now. The agreement becomes accepted
-                  only after you record the client’s written acceptance evidence.
+                  The uploaded PDF is stored in Documents. Contract Studio records your evidence but
+                  does not validate PDF signatures or verify signer identity.
                 </p>
-              </>
+              </div>
             )}
-            {selectedAgreement?.status === 'accepted' && (
-              <p className="inline-note agreement-help">
-                Written acceptance is recorded. Generate a final PDF version below. You can prepare
-                the booking confirmation and invoice before this step.
-              </p>
+            {selectedAgreement?.status === 'finalized' && (
+              <div className="inline-note agreement-help">
+                Finalized on {dateLabel(selectedAgreement.effective_date)}. Evidence:{' '}
+                {selectedAgreement.acceptance_reference || 'Confirmed'}.
+                {selectedAgreement.acceptance_reference.startsWith('Uploaded signed PDF:') && (
+                  <>
+                    {' '}
+                    The signed copy is in <Link to="/documents">Documents</Link>.
+                  </>
+                )}
+              </div>
             )}
-            {generate.data && (
+            {selectedAgreement && generate.data?.reference === selectedAgreement.agreement_ref && (
               <p className="agreement-help" role="status">
                 Saved {generate.data.name} in the document library.
               </p>
             )}
           </div>
           <p className="inline-note">
-            The PDF includes signer, date, and digital signature fields. Sign it in a compatible PDF
-            app, save the signed copy, then record the last signature date and where that copy is
-            stored. The app does not verify signer identity or automatically record acceptance.
+            Create a contract as Draft. Saving its PDF moves it to Pending signature. Upload the
+            signed copy, record an acceptance reference, or explicitly confirm it to finalize.
           </p>
         </Panel>
         <Panel>

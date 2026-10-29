@@ -213,15 +213,11 @@ class ProfileInput(APIModel):
 
 class AgreementInput(APIModel):
     client_id: int = Field(gt=0)
-    effective_date: date
-    accepted: bool = False
-    accepted_date: date | None = None
-    acceptance_reference: str = Field(default="", max_length=200)
 
 
-class AgreementAcceptInput(APIModel):
-    accepted_date: date
-    acceptance_reference: str = Field(min_length=1, max_length=200)
+class AgreementFinalizeInput(APIModel):
+    signed_date: date
+    evidence_reference: str = Field(min_length=1, max_length=200)
 
 
 InvoiceInput.model_rebuild()

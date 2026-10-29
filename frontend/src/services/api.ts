@@ -111,15 +111,18 @@ export const api = {
   ) => request<Invoice>(`/api/invoices/${id}/payments`, json('POST', value)),
   reviseInvoice: (id: number) => request<Invoice>(`/api/invoices/${id}/revisions`, json('POST')),
   agreements: () => request<Agreement[]>('/api/agreements'),
-  createAgreement: (value: {
-    client_id: number
-    effective_date: string
-    accepted: boolean
-    accepted_date?: string
-    acceptance_reference?: string
-  }) => request<Agreement>('/api/agreements', json('POST', value)),
-  acceptAgreement: (id: number, value: { accepted_date: string; acceptance_reference: string }) =>
-    request<Agreement>(`/api/agreements/${id}/accept`, json('POST', value)),
+  createAgreement: (value: { client_id: number }) =>
+    request<Agreement>('/api/agreements', json('POST', value)),
+  finalizeAgreement: (id: number, value: { signed_date: string; evidence_reference: string }) =>
+    request<Agreement>(`/api/agreements/${id}/finalize`, json('POST', value)),
+  uploadSignedAgreement: (id: number, signedDate: string, file: File) => {
+    const query = new URLSearchParams({ signed_date: signedDate, filename: file.name })
+    return request<Agreement>(`/api/agreements/${id}/signed-copy?${query}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/pdf' },
+      body: file,
+    })
+  },
   deleteAgreement: (id: number) => request<void>(`/api/agreements/${id}`, json('DELETE')),
   settings: () => request<Settings>('/api/settings'),
   updateSettings: (value: Profile) => request<Settings>('/api/settings', json('PATCH', value)),

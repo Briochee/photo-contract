@@ -1,4 +1,4 @@
-Version: 17
+Version: 19
 
 # Repository Guidelines
 
@@ -33,7 +33,7 @@ The document library can delete a saved PDF and its library record while retaini
 
 Electron PDF previews use Chromium's local PDF viewer. Keep plugin support enabled for the app and permit popup windows only for blob URLs created by the local backend origin. Master agreement and booking confirmation PDFs contain AcroForm signature/date fields added after Chromium rendering; invoices do not require signatures. The app records acceptance evidence separately and does not verify identity from a filled PDF.
 
-The master agreement takes effect on the date of the last signature. Draft creation dates are internal only; expose the agreement date after written acceptance is recorded, and preserve prior agreement text snapshots when the legal template version changes.
+Master agreements move from draft to pending when their PDF is saved, then finalized when a signed PDF is uploaded or written-acceptance evidence is recorded. Keep the effective date empty until finalization; the last-signature date is the effective date, and `confirmed` is an explicit evidence override. Preserve prior agreement text snapshots when the legal template version changes. Saved unsigned agreement PDFs should show as pending signature in the document library.
 
 ## Verification and Change Review
 

@@ -139,8 +139,8 @@ export type Agreement = {
   agreement_ref: string
   client_id: number
   client_name: string
-  effective_date: string
-  status: 'draft' | 'accepted'
+  effective_date: string | null
+  status: 'draft' | 'pending' | 'finalized'
   template_version: string
   legal_text_hash: string
   accepted_at: string | null
@@ -159,7 +159,7 @@ export type GeneratedDocument = {
   invoice_reference: string | null
   reference: string
   version: number
-  status: 'draft' | 'final'
+  status: 'draft' | 'pending' | 'final'
   created_at: string
   content_hash: string
   template_version: string
