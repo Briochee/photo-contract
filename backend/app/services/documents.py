@@ -329,18 +329,28 @@ def _invoice_booking_id(session: Session, invoice_id: int) -> int:
 
 
 def _person_name(profile: dict[str, Any]) -> str:
-    return profile.get("legal_name") or profile.get("business_name") or "Photographer"
+    """Format the photographer's legal and business names without implying an entity type."""
+    legal_name = _plain_text(profile.get("legal_name"))
+    business_name = _plain_text(profile.get("business_name"))
+    if legal_name and business_name and legal_name.casefold() != business_name.casefold():
+        return f"{legal_name} / {business_name}"
+    return legal_name or business_name or "Photographer"
 
 
 def _contact_name(client: dict[str, Any]) -> str:
-    name = client.get("primary_contact_name", "")
-    title = client.get("primary_contact_title", "")
-    return f"{name} / {title}" if title else name
+    name = _plain_text(client.get("primary_contact_name"))
+    title = _plain_text(client.get("primary_contact_title"))
+    return f"{name} / {title}" if name and title else name or title
 
 
-def _md_text(value: str) -> str:
+def _plain_text(value: object) -> str:
+    """Convert optional snapshot values to display text without leaking object representations."""
+    return value.strip() if isinstance(value, str) else ""
+
+
+def _md_text(value: object) -> str:
     """Escape substituted values before passing them through the Markdown parser."""
-    return html.escape(value or "", quote=True).replace("\n", "  \n")
+    return html.escape(_plain_text(value), quote=True).replace("\n", "  \n")
 
 
 def _current_invoice_reference(booking: Booking) -> str:
@@ -349,33 +359,43 @@ def _current_invoice_reference(booking: Booking) -> str:
 
 
 def _substitute_header_lines(source: str, snapshot_data: dict[str, Any]) -> str:
-    client = snapshot_data["client"]
-    photographer = snapshot_data["photographer"]
-    lines = source.splitlines()
-    replacements = {
-        "**Effective Date:** [Date]": "**Effective Date:** " + snapshot_data["effective_date"],
-        "**Photographer:** [Legal name / business name]": "**Photographer:** "
-        + _md_text(_person_name(photographer)),
-        "**Address:** [Address]": None,
-        "**Email:** [Email]": None,
-        "**Client:** [Legal entity name]": "**Client:** " + _md_text(client["legal_name"]),
-        "**Authorized Representative:** [Name / title]": "**Authorized Representative:** "
-        + _md_text(_contact_name(client)),
-    }
-    address_index = 0
-    email_index = 0
-    output = []
-    for line in lines:
-        if line == "**Address:** [Address]":
-            value = (
-                photographer["mailing_address"] if address_index == 0 else client["mailing_address"]
-            )
-            output.append("**Address:** " + _md_text(value))
-            address_index += 1
-        elif line == "**Email:** [Email]":
-            value = photographer["email"] if email_index == 0 else client["contact_email"]
-            output.append("**Email:** " + _md_text(value))
-            email_index += 1
+    """Populate agreement header placeholders from the immutable client/profile snapshot."""
+    client = snapshot_data.get("client", {})
+    photographer = snapshot_data.get("photographer", {})
+    current_party: Literal["photographer", "client"] | None = None
+    output: list[str] = []
+
+    for line in source.splitlines():
+        match = re.match(r"^\*\*(?P<label>[^*]+):\*\*\s*\[(?P<field>[^\]]+)\](?P<tail>\s*)$", line)
+        if match is None:
+            output.append(line)
+            continue
+
+        label = re.sub(r"[^a-z0-9]+", "", match.group("label").casefold())
+        field = re.sub(r"[^a-z0-9]+", "", match.group("field").casefold())
+        if label in {"photographer", "photographername"}:
+            current_party = "photographer"
+            value = _person_name(photographer)
+        elif label in {"client", "clientname", "clientlegalname"}:
+            current_party = "client"
+            value = _plain_text(client.get("legal_name"))
+        elif label in {"effectivedate", "date"} or field == "date":
+            value = _plain_text(snapshot_data.get("effective_date"))
+        elif label in {"authorizedrepresentative", "clientrepresentative"}:
+            value = _contact_name(client)
+        elif label in {"address", "mailingaddress"}:
+            party = client if current_party == "client" else photographer
+            value = _plain_text(party.get("mailing_address"))
+        elif label in {"email", "contactemail"}:
+            party = client if current_party == "client" else photographer
+            key = "contact_email" if current_party == "client" else "email"
+            value = _plain_text(party.get(key))
+        elif field in {"legalnamebusinessname", "legalnamecompanyname"}:
+            value = _person_name(photographer)
         else:
-            output.append(replacements.get(line, line))
+            output.append(line)
+            continue
+
+        output.append(match.group(0).split("[")[0] + _md_text(value) + match.group("tail"))
+
     return "\n".join(output) + "\n"

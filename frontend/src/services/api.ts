@@ -13,7 +13,32 @@ import type {
   Settings,
 } from '../types'
 
-type ErrorPayload = { detail?: string }
+function errorMessage(payload: unknown, fallback: string): string {
+  if (!payload || typeof payload !== 'object' || !('detail' in payload)) return fallback
+  const detail = payload.detail
+  if (typeof detail === 'string' && detail.trim()) return detail
+  if (Array.isArray(detail)) {
+    const messages = detail.flatMap((issue) => {
+      if (!issue || typeof issue !== 'object') return []
+      const message = 'msg' in issue && typeof issue.msg === 'string' ? issue.msg : null
+      if (!message) return []
+      const location =
+        'loc' in issue && Array.isArray(issue.loc)
+          ? issue.loc.filter(
+              (part: unknown): part is string => typeof part === 'string' && part !== 'body',
+            )
+          : []
+      return [`${location.length ? `${location.join('.')}: ` : ''}${message}`]
+    })
+    if (messages.length) return messages.join('; ')
+  }
+  if (detail && typeof detail === 'object') {
+    const message = 'message' in detail ? detail.message : 'msg' in detail ? detail.msg : null
+    if (typeof message === 'string' && message.trim()) return message
+    return JSON.stringify(detail) || fallback
+  }
+  return fallback
+}
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, {
@@ -21,8 +46,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     headers: { ...(init?.body ? { 'Content-Type': 'application/json' } : {}), ...init?.headers },
   })
   if (!response.ok) {
-    const error = (await response.json().catch(() => ({}))) as ErrorPayload
-    throw new Error(error.detail ?? `Request failed (${response.status})`)
+    const payload = await response.json().catch(() => ({}))
+    throw new Error(errorMessage(payload, `Request failed (${response.status})`))
   }
   if (response.status === 204) return undefined as T
   return (await response.json()) as T
@@ -100,8 +125,8 @@ export const api = {
   previewDocument: async (value: DocumentRequest) => {
     const response = await fetch('/api/documents/preview', json('POST', value))
     if (!response.ok) {
-      const error = (await response.json().catch(() => ({}))) as ErrorPayload
-      throw new Error(error.detail ?? `Preview failed (${response.status})`)
+      const payload = await response.json().catch(() => ({}))
+      throw new Error(errorMessage(payload, `Preview failed (${response.status})`))
     }
     return URL.createObjectURL(await response.blob())
   },
