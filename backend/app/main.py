@@ -1,4 +1,4 @@
-"""FastAPI application entry point for the local Photography Document Studio."""
+"""FastAPI application entry point for the local Contract Studio."""
 
 from time import perf_counter
 
@@ -14,7 +14,7 @@ from backend.app.config import FRONTEND_DIST
 from backend.app.logging_config import activity, requests
 
 app = FastAPI(
-    title="Photography Document Studio",
+    title="Contract Studio",
     version="1.0.0",
     description="Local-first client, booking, agreement, invoice, and document management.",
     docs_url="/docs",
@@ -89,7 +89,7 @@ async def check_browser_origin(request: Request, call_next):
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "application": "Photography Document Studio"}
+    return {"status": "ok", "application": "Contract Studio"}
 
 
 if FRONTEND_DIST.is_dir():

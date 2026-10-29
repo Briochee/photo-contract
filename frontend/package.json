@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "description": "Local client, booking, agreement, invoice, and document management for photographers.",
-  "author": "Photography Document Studio",
+  "author": "Contract Studio",
   "type": "module",
   "main": "desktop/main.cjs",
   "scripts": {
@@ -50,12 +50,15 @@
   },
   "build": {
     "appId": "com.riophotography.documentstudio",
-    "productName": "Photography Document Studio",
+    "productName": "Contract Studio",
+    "electronDist": "node_modules/electron/dist",
     "directories": {
       "output": "../release"
     },
     "files": [
       "desktop/main.cjs",
+      "desktop/loading.html",
+      "assets/contract-studio-icon.png",
       "dist/**/*",
       "package.json"
     ],
@@ -75,6 +78,7 @@
     ],
     "mac": {
       "target": "dir",
+      "icon": "../build/macos_app/contract-studio.icns",
       "category": "public.app-category.photography",
       "identity": "-",
       "signIgnore": [

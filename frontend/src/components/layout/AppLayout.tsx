@@ -1,4 +1,5 @@
 import { NavLink, Outlet } from 'react-router-dom'
+import contractStudioIcon from '../../../assets/contract-studio-icon.png'
 import styles from './AppLayout.module.css'
 
 const links = [
@@ -14,16 +15,14 @@ export function AppLayout() {
   return (
     <div className={styles.shell}>
       <aside className={styles.sidebar}>
-        <NavLink to="/" className={styles.brand} aria-label="Photography Document Studio home">
+        <NavLink to="/" className={styles.brand} aria-label="Contract Studio home">
           <span className={styles.brandMark} aria-hidden="true">
-            <span className={styles.brandGlyph}>
-              P<span className={styles.brandDot}>·</span>D
-            </span>
+            <img src={contractStudioIcon} alt="" />
           </span>
           <span className={styles.brandName}>
-            Photography
+            Contract
             <br />
-            Document Studio
+            Studio
           </span>
         </NavLink>
         <div className={styles.sideLabel}>WORKSPACE / LOCAL</div>

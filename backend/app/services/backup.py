@@ -14,8 +14,8 @@ from backend.app.config import DATA_DIR, DATABASE_PATH
 def create_backup() -> Path:
     """Build a ZIP with SQLite online backups and copied local records/documents."""
     DATA_DIR.mkdir(parents=True, exist_ok=True)
-    temporary_root = Path(tempfile.mkdtemp(prefix="photo-studio-backup-", dir=DATA_DIR))
-    archive_path = temporary_root / "photography-document-studio-backup.zip"
+    temporary_root = Path(tempfile.mkdtemp(prefix="contract-studio-backup-", dir=DATA_DIR))
+    archive_path = temporary_root / "contract-studio-backup.zip"
     staging = temporary_root / "staging"
     staging.mkdir()
     try:
@@ -34,7 +34,7 @@ def create_backup() -> Path:
         if DATABASE_PATH.exists() and not (staging / DATABASE_PATH.name).exists():
             _sqlite_backup(DATABASE_PATH, staging / DATABASE_PATH.name)
         manifest = {
-            "application": "Photography Document Studio",
+            "application": "Contract Studio",
             "created_at": datetime.now(UTC).isoformat(),
             "database_file": DATABASE_PATH.name,
             "includes": ["SQLite databases", "settings", "legacy records", "generated documents"],

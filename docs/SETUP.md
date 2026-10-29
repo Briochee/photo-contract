@@ -63,7 +63,7 @@ Launch the desktop application from the repository root after installing depende
 npm run desktop --prefix frontend
 ```
 
-This builds the React UI, applies database migrations, starts FastAPI as an Electron-managed child process on an available loopback port, and opens the desktop window. The backend shuts down when the app closes. In development, Electron uses `.venv/bin/python` (`.venv/Scripts/python.exe` on Windows) when present, then `python3` or `python` on `PATH`; set `PHOTO_STUDIO_PYTHON` to choose another interpreter. Runtime data remains under `PHOTO_STUDIO_DATA_DIR` (default `data/`). `npm install` downloads Electron; normal operation is local and offline.
+This builds the React UI, opens the Contract Studio loading window immediately, then applies database migrations and starts FastAPI as an Electron-managed child process on an available loopback port. The loading screen stays visible until the workspace is ready; the backend shuts down when the app closes. In development, Electron uses `.venv/bin/python` (`.venv/Scripts/python.exe` on Windows) when present, then `python3` or `python` on `PATH`; set `PHOTO_STUDIO_PYTHON` to choose another interpreter. Runtime data remains under `PHOTO_STUDIO_DATA_DIR` (default `data/`). `npm install` downloads Electron; normal operation is local and offline.
 
 ## Build a Finder-Installable macOS App
 
@@ -84,7 +84,7 @@ Build the app bundle:
 npm run build:mac --prefix frontend
 ```
 
-The result is `release/mac-arm64/Photography Document Studio.app` on Apple Silicon or `release/mac-x64/Photography Document Studio.app` on Intel. Drag the `.app` into `/Applications` and open it from Finder. The local app stores its database, PDFs, and logs under `~/Library/Application Support/Photography Document Studio/data/` by default; set `PHOTO_STUDIO_DATA_DIR` before launching to choose another location.
+The result is `release/mac-arm64/Contract Studio.app` on Apple Silicon or `release/mac-x64/Contract Studio.app` on Intel. Drag the `.app` into `/Applications` and open it from Finder. The app keeps existing records in `~/Library/Application Support/Photography Document Studio/data/` for compatibility; set `PHOTO_STUDIO_DATA_DIR` before launching to choose another location. The app icon uses the local `frontend/assets/contract-studio-icon.png` artwork and is converted to `.icns` during the build.
 
 If the configured project data directory contains `studio.sqlite3` when you build, the app imports a consistent SQLite backup and the existing local files on first launch. The source data stays untouched; leave it in place until the app has opened once.
 

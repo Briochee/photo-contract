@@ -1,10 +1,10 @@
-Version: 13
+Version: 14
 
 # Repository Guidelines
 
 ## Product and Architecture
 
-Photography Document Studio manages local clients, agreements, bookings, invoices, and PDFs. It uses React/Vite/TypeScript (`frontend/`), FastAPI/SQLAlchemy/SQLite (`backend/`), and Electron (`frontend/desktop/`). Electron manages FastAPI's lifecycle; Jinja templates render PDFs through local Playwright Chromium. `scripts/build_macos_app.py` packages the backend and headless browser into a Finder-installable macOS app and imports existing local data on first launch. Streamlit sources remain optional legacy/migration tools; their dependencies are isolated in `legacy/requirements.txt`.
+Contract Studio manages local clients, agreements, bookings, invoices, and PDFs. It uses React/Vite/TypeScript (`frontend/`), FastAPI/SQLAlchemy/SQLite (`backend/`), and Electron (`frontend/desktop/`). Electron shows a local loading window before starting FastAPI; Jinja templates render PDFs through local Playwright Chromium. `scripts/build_macos_app.py` packages the locally installed Electron runtime, backend, and headless browser into a Finder-installable macOS app and imports existing local data on first launch. Keep the Electron user-data directory named `Photography Document Studio` for compatibility with existing installations. Streamlit sources remain optional legacy/migration tools; their dependencies are isolated in `legacy/requirements.txt`.
 
 ## Project References
 

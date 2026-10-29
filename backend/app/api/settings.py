@@ -27,7 +27,7 @@ def download_backup():
     return FileResponse(
         path,
         media_type="application/zip",
-        filename="photography-document-studio-backup.zip",
+        filename="contract-studio-backup.zip",
         background=BackgroundTask(remove_backup, path),
     )
 

@@ -7,6 +7,7 @@ import os
 import platform
 import re
 import shutil
+import struct
 import subprocess
 import sys
 from pathlib import Path
@@ -117,6 +118,73 @@ def stage_playwright_browsers(python: Path, destination: Path) -> None:
             ignore=shutil.ignore_patterns(".DS_Store"),
         )
         print(f"Bundled Playwright browser: {source.name}", flush=True)
+
+
+def stage_macos_icon(destination: Path) -> None:
+    """Resize the source artwork and package PNG representations into an ICNS file."""
+    source = FRONTEND / "assets" / "contract-studio-icon.png"
+    sips = shutil.which("sips")
+    if not source.is_file():
+        raise RuntimeError(f"The application icon is missing: {source}")
+    if not sips:
+        raise RuntimeError(
+            "The macOS `sips` tool is required to resize app icon variants."
+        )
+
+    iconset = BUILD_DIR / "contract-studio.iconset"
+    remove_generated_path(iconset)
+    iconset.mkdir()
+    sizes = {
+        "icon_16x16.png": 16,
+        "icon_16x16@2x.png": 32,
+        "icon_32x32.png": 32,
+        "icon_32x32@2x.png": 64,
+        "icon_128x128.png": 128,
+        "icon_128x128@2x.png": 256,
+        "icon_256x256.png": 256,
+        "icon_256x256@2x.png": 512,
+        "icon_512x512.png": 512,
+        "icon_512x512@2x.png": 1024,
+    }
+    try:
+        for filename, size in sizes.items():
+            run(
+                [
+                    sips,
+                    "-z",
+                    str(size),
+                    str(size),
+                    str(source),
+                    "--out",
+                    str(iconset / filename),
+                ],
+                cwd=ROOT,
+            )
+        chunk_files = {
+            "icp4": "icon_16x16.png",
+            "ic11": "icon_16x16@2x.png",
+            "icp5": "icon_32x32.png",
+            "ic12": "icon_32x32@2x.png",
+            "ic07": "icon_128x128.png",
+            "ic13": "icon_128x128@2x.png",
+            "ic08": "icon_256x256.png",
+            "ic14": "icon_256x256@2x.png",
+            "ic09": "icon_512x512.png",
+            "ic10": "icon_512x512@2x.png",
+        }
+        chunks = []
+        for chunk_type, filename in chunk_files.items():
+            image = (iconset / filename).read_bytes()
+            chunks.append(
+                struct.pack(">4sI", chunk_type.encode("ascii"), len(image) + 8)
+            )
+            chunks.append(image)
+        payload = b"".join(chunks)
+        destination.write_bytes(
+            struct.pack(">4sI", b"icns", len(payload) + 8) + payload
+        )
+    finally:
+        remove_generated_path(iconset)
 
 
 def stage_legacy_data_path(python: Path, destination: Path) -> None:
@@ -231,27 +299,29 @@ def main() -> int:
     freezer_environment["PYINSTALLER_CONFIG_DIR"] = str(pyinstaller_config)
     run(freezer_command, cwd=ROOT, env=freezer_environment)
 
+    stage_macos_icon(BUILD_DIR / "contract-studio.icns")
+
     machine = platform.machine().lower()
     architecture = "arm64" if machine in {"arm64", "aarch64"} else "x64"
-    app_path = (
+    previous_app_path = (
         ROOT / "release" / f"mac-{architecture}" / "Photography Document Studio.app"
     )
+    app_path = ROOT / "release" / f"mac-{architecture}" / "Contract Studio.app"
     remove_generated_path(app_path)
     run([str(builder), "--mac", "dir", f"--{architecture}"], cwd=FRONTEND)
 
     if not app_path.is_dir():
-        candidates = sorted(
-            (ROOT / "release").glob("**/Photography Document Studio.app")
-        )
+        candidates = sorted((ROOT / "release").glob("**/Contract Studio.app"))
         if not candidates:
             raise RuntimeError(
                 "Electron Builder finished without producing the expected .app bundle."
             )
         app_path = candidates[0]
+    remove_generated_path(previous_app_path)
 
     print("\nBuilt application:", app_path, flush=True)
     print(
-        "Copy Photography Document Studio.app to /Applications to install it.",
+        "Copy Contract Studio.app to /Applications to install it.",
         flush=True,
     )
     print(

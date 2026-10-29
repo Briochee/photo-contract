@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; img-src 'self' file:; style-src 'unsafe-inline'; script-src 'unsafe-inline'"
+    />
+    <meta name="theme-color" content="#f1f2ef" />
+    <title>Contract Studio</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --paper: #f1f2ef;
+        --paper-deep: #dfe4e2;
+        --surface: #f8f9f5;
+        --ink: #24241f;
+        --ink-soft: #66645d;
+        --accent: #72283a;
+        --line: rgb(36 36 31 / 18%);
+        --font: Calibri, Carlito, Arial, sans-serif;
+        font-family: var(--font);
+        font-synthesis: none;
+        text-rendering: optimizeLegibility;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        min-width: 320px;
+        min-height: 100vh;
+        margin: 0;
+        display: grid;
+        place-items: center;
+        background: var(--paper);
+        color: var(--ink);
+      }
+
+      .startup-panel {
+        display: grid;
+        width: min(760px, calc(100vw - 48px));
+        min-height: 340px;
+        grid-template-columns: minmax(200px, 0.72fr) minmax(0, 1.28fr);
+        border: 1.5px solid var(--ink);
+        background: var(--surface);
+        box-shadow: 8px 8px 0 var(--ink);
+      }
+
+      .brand-panel {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        border-right: 1px solid var(--line);
+        background: var(--paper-deep);
+        padding: 30px;
+      }
+
+      .brand-icon {
+        display: block;
+        width: 84px;
+        height: 84px;
+        border: 1.5px solid var(--ink);
+        box-shadow: 4px 4px 0 var(--accent);
+      }
+
+      .brand-name {
+        margin: 38px 0 0;
+        font-size: 1.8rem;
+        font-weight: 800;
+        letter-spacing: -0.055em;
+        line-height: 0.98;
+      }
+
+      .brand-caption,
+      .eyebrow,
+      .private-note {
+        color: var(--ink-soft);
+        font-size: 0.68rem;
+        font-weight: 700;
+        letter-spacing: 0.13em;
+        text-transform: uppercase;
+      }
+
+      .brand-caption {
+        margin: 14px 0 0;
+      }
+
+      .workspace-panel {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: 44px;
+      }
+
+      .eyebrow {
+        margin: 0 0 22px;
+      }
+
+      h1 {
+        max-width: 14ch;
+        margin: 0;
+        font-size: clamp(2rem, 4vw, 2.7rem);
+        font-weight: 800;
+        letter-spacing: -0.055em;
+        line-height: 1.02;
+      }
+
+      .status-copy {
+        min-height: 3.2rem;
+        margin: 18px 0 0;
+        color: var(--ink-soft);
+        font-size: 1rem;
+        line-height: 1.5;
+      }
+
+      .progress-track {
+        position: relative;
+        height: 5px;
+        overflow: hidden;
+        margin-top: 26px;
+        background: var(--line);
+      }
+
+      .progress-indicator {
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 34%;
+        background: var(--accent);
+        animation: progress-travel 1.35s ease-in-out infinite alternate;
+      }
+
+      .private-note {
+        margin: 28px 0 0;
+      }
+
+      @keyframes progress-travel {
+        from {
+          transform: translateX(0);
+        }
+        to {
+          transform: translateX(190%);
+        }
+      }
+
+      @media (max-width: 600px) {
+        .startup-panel {
+          width: min(440px, calc(100vw - 32px));
+          grid-template-columns: 1fr;
+        }
+
+        .brand-panel {
+          min-height: 120px;
+          flex-direction: row;
+          align-items: center;
+          gap: 20px;
+          border-right: 0;
+          border-bottom: 1px solid var(--line);
+          padding: 18px 22px;
+        }
+
+        .brand-icon {
+          width: 58px;
+          height: 58px;
+          flex: none;
+        }
+
+        .brand-copy {
+          flex: 1;
+        }
+
+        .brand-name {
+          margin: 0;
+          font-size: 1.55rem;
+        }
+
+        .brand-caption {
+          margin-top: 8px;
+          font-size: 0.6rem;
+        }
+
+        .workspace-panel {
+          padding: 28px 24px 30px;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          scroll-behavior: auto !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="startup-panel" aria-label="Contract Studio startup">
+      <section class="brand-panel" aria-label="Application identity">
+        <img class="brand-icon" src="../assets/contract-studio-icon.png" alt="" />
+        <div class="brand-copy">
+          <p class="brand-name">Contract<br />Studio</p>
+          <p class="brand-caption">Photography documents</p>
+        </div>
+      </section>
+      <section class="workspace-panel">
+        <p class="eyebrow">Local workspace / Startup</p>
+        <h1 id="status-title">Opening your workspace</h1>
+        <p id="status-copy" class="status-copy" role="status" aria-live="polite">
+          Preparing the documents and records stored on this Mac.
+        </p>
+        <div
+          class="progress-track"
+          role="progressbar"
+          aria-label="Starting Contract Studio"
+          aria-valuetext="Starting local services"
+        >
+          <span class="progress-indicator"></span>
+        </div>
+        <p class="private-note">Private by default · Stored on this device</p>
+      </section>
+    </main>
+    <script>
+      window.setStartupStatus = (title, detail) => {
+        document.getElementById('status-title').textContent = title
+        document.getElementById('status-copy').textContent = detail
+      }
+    </script>
+  </body>
+</html>

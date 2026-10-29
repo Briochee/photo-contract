@@ -1,4 +1,4 @@
-# Photography Document Studio
+# Contract Studio
 
 A local-first application for maintaining photography clients, agreements, bookings, invoices, and historical PDFs. The replacement interface uses React, Vite, and TypeScript; FastAPI, SQLite, SQLAlchemy, and Alembic provide local APIs and persistence. Jinja2 templates rendered by Playwright Chromium generate US Letter PDFs. No hosted service, external font, or telemetry is used.
 
