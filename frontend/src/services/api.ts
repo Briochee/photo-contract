@@ -73,6 +73,7 @@ export const api = {
   createBooking: (value: BookingPayload) => request<Booking>('/api/bookings', json('POST', value)),
   updateBooking: (id: number, value: BookingPayload) =>
     request<Booking>(`/api/bookings/${id}`, json('PATCH', value)),
+  deleteBooking: (id: number) => request<void>(`/api/bookings/${id}`, json('DELETE')),
   acceptBooking: (id: number, value: { accepted_date: string; acceptance_reference: string }) =>
     request<Booking>(`/api/bookings/${id}/accept`, json('POST', value)),
   addExpense: (id: number, value: ExpenseInput) =>

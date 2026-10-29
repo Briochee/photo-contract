@@ -3,18 +3,22 @@
 import json
 from datetime import UTC, date, datetime, time
 
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, HTTPException, Response
+from sqlalchemy import or_, select
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from backend.app.database import get_session
+from backend.app.logging_config import activity
 from backend.app.models import (
     AdditionalExpense,
     Booking,
     BookingAmendment,
     Client,
+    GeneratedDocument,
     Invoice,
     MasterAgreement,
+    Payment,
     PhotographerProfile,
 )
 from backend.app.schemas import (
@@ -125,6 +129,69 @@ def get_booking_route(booking_id: int, session: Session = Depends(get_session)):
         for row in invoices
     ]
     return result
+
+
+@router.delete("/{booking_id}", status_code=204)
+def delete_booking(booking_id: int, session: Session = Depends(get_session)) -> Response:
+    """Delete an unaccepted booking and its unpaid draft invoices while retaining saved PDFs."""
+    booking = session.get(Booking, booking_id)
+    if booking is None:
+        raise HTTPException(404, "Booking not found")
+    if booking.status != "draft":
+        raise HTTPException(
+            409, "Only draft bookings can be deleted; accepted records are retained"
+        )
+
+    invoices = session.scalars(select(Invoice).where(Invoice.booking_id == booking_id)).all()
+    if any(
+        invoice.status != "draft"
+        or invoice.issued_at is not None
+        or invoice.issued_snapshot_json is not None
+        for invoice in invoices
+    ):
+        raise HTTPException(
+            409, "Bookings with issued invoices are retained to preserve financial history"
+        )
+
+    invoice_ids = [invoice.id for invoice in invoices]
+    if invoice_ids:
+        payment_id = session.scalar(
+            select(Payment.id).where(Payment.invoice_id.in_(invoice_ids)).limit(1)
+        )
+        if payment_id is not None:
+            raise HTTPException(409, "Bookings with recorded payments cannot be deleted")
+        revision_id = session.scalar(
+            select(Invoice.id).where(Invoice.revision_of_id.in_(invoice_ids)).limit(1)
+        )
+        if revision_id is not None:
+            raise HTTPException(409, "Bookings referenced by an invoice revision cannot be deleted")
+
+    reference = booking.booking_ref
+    try:
+        document_filters = [GeneratedDocument.booking_id == booking_id]
+        if invoice_ids:
+            document_filters.append(GeneratedDocument.invoice_id.in_(invoice_ids))
+        documents = session.scalars(select(GeneratedDocument).where(or_(*document_filters))).all()
+        for document in documents:
+            document.booking_id = None
+            document.invoice_id = None
+        for invoice in invoices:
+            session.delete(invoice)
+        session.flush()
+        session.delete(booking)
+        session.commit()
+    except IntegrityError as exc:
+        session.rollback()
+        raise HTTPException(
+            409, "This booking is still referenced by a protected financial record"
+        ) from exc
+    except SQLAlchemyError as exc:
+        session.rollback()
+        activity.error("booking_delete_failed id=%d error=%s", booking_id, type(exc).__name__)
+        raise HTTPException(503, "The booking could not be deleted. Please try again.") from exc
+
+    activity.info("booking_deleted ref=%s", reference)
+    return Response(status_code=204)
 
 
 @router.patch("/{booking_id}")

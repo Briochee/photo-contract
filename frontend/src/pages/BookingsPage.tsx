@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
@@ -13,7 +13,22 @@ import { api } from '../services/api'
 import { dateLabel, money } from '../utils/format'
 
 export function BookingsPage() {
+  const queryClient = useQueryClient()
   const bookings = useQuery({ queryKey: ['bookings'], queryFn: api.bookings })
+  const deleteBooking = useMutation({
+    mutationFn: api.deleteBooking,
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['bookings'] }),
+        queryClient.invalidateQueries({ queryKey: ['booking'] }),
+        queryClient.invalidateQueries({ queryKey: ['client'] }),
+        queryClient.invalidateQueries({ queryKey: ['clients'] }),
+        queryClient.invalidateQueries({ queryKey: ['dashboard'] }),
+        queryClient.invalidateQueries({ queryKey: ['documents'] }),
+        queryClient.invalidateQueries({ queryKey: ['invoices'] }),
+      ])
+    },
+  })
   const [status, setStatus] = useState('all')
   const [search, setSearch] = useState('')
   const filtered = useMemo(
@@ -44,7 +59,7 @@ export function BookingsPage() {
         }
       />
       <Panel>
-        <ErrorMessage error={bookings.error} />
+        <ErrorMessage error={bookings.error || deleteBooking.error} />
         <div className="filter-row">
           <div className="field">
             <label htmlFor="booking-search">Search bookings</label>
@@ -82,7 +97,7 @@ export function BookingsPage() {
                   <th>Event date</th>
                   <th>Status</th>
                   <th className="numeric">Agreed fees</th>
-                  <th></th>
+                  <th className="actions">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -100,8 +115,31 @@ export function BookingsPage() {
                       <Status value={booking.status} />
                     </td>
                     <td className="numeric">{money(booking.subtotal_cents)}</td>
-                    <td>
-                      <Link to={`/bookings/${booking.id}`}>Open →</Link>
+                    <td className="actions">
+                      <div className="table-actions">
+                        <Link className="text-button" to={`/bookings/${booking.id}`}>
+                          Open
+                        </Link>
+                        <button
+                          className="text-button text-button--danger"
+                          type="button"
+                          disabled={booking.status !== 'draft' || deleteBooking.isPending}
+                          title={
+                            booking.status === 'draft'
+                              ? 'Delete this draft and any unpaid draft invoices.'
+                              : 'Accepted and cancelled bookings are retained for the record.'
+                          }
+                          aria-label={`Delete booking ${booking.booking_ref}`}
+                          onClick={() => {
+                            const confirmed = window.confirm(
+                              `Delete draft booking ${booking.booking_ref}? Any unpaid draft invoices will also be deleted. Saved PDFs remain in Documents without a booking link. Accepted bookings and bookings with issued invoices or payments cannot be deleted.`,
+                            )
+                            if (confirmed) deleteBooking.mutate(booking.id)
+                          }}
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
