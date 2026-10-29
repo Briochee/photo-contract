@@ -136,6 +136,8 @@ Settings also provides **Clear all history and data**. After confirmation, it re
 
 Master agreements move from draft to pending when their PDF is saved to the document library. The effective date remains empty until finalization; it is set to the date of the last signature. Finalize an agreement by uploading the signed PDF or recording that date with a reference (or the explicit `confirmed` override). Unsigned agreement PDFs show as pending signature. Uploaded signed PDFs are stored as separate immutable document versions.
 
+Booking confirmations follow the same lifecycle: the booking remains a draft until its confirmation PDF is saved, then becomes pending until written acceptance is recorded, which finalizes it. Draft invoices can be created and issued from any saved booking before acceptance; issuing an invoice does not finalize the booking.
+
 ## Sample Documents
 
 The `examples/` directory contains fictional Chromium-generated agreement, booking, and invoice PDFs. To recreate them, move the existing PDFs out of that directory, then run:

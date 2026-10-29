@@ -228,7 +228,7 @@ export function BookingEditorPage() {
   if ((bookingId && bookingQuery.isLoading) || clients.isLoading || settings.isLoading)
     return <Loading />
   const booking = bookingQuery.data
-  const locked = booking?.status === 'accepted'
+  const locked = booking?.status === 'finalized'
   const baseCents = watchedLines.reduce(
     (sum, item) => sum + lineAmountCents(item?.quantity ?? '0', item?.unit_rate ?? '0'),
     0,
@@ -466,8 +466,8 @@ export function BookingEditorPage() {
                 </button>
               </div>
               <p className="inline-note">
-                These charges appear in both the accepted booking confirmation and invoice. Accepted
-                pricing requires an agreed amendment to change.
+                These charges appear on the booking confirmation and invoice. Finalized pricing
+                requires a documented amendment to change.
               </p>
               <div className="line-list" role="group" aria-label="Agreed booking line items">
                 <div className="line-row line-row--head">
@@ -725,12 +725,12 @@ export function BookingEditorPage() {
               <h2>08 · Review and documents</h2>
               <Status value={booking.status} />
             </div>
-            {booking.status === 'draft' && (
+            {(booking.status === 'draft' || booking.status === 'pending') && (
               <div className="acceptance-controls">
                 <p className="inline-note">
-                  You can save the signable booking confirmation and prepare an invoice before
-                  acceptance. Complete its signature and date fields in a compatible PDF app, then
-                  record the date and evidence reference after both Parties accept in writing.
+                  Saving the booking confirmation moves this reference to pending. Record the
+                  written acceptance date and evidence reference to finalize it. You can prepare and
+                  issue an invoice while the booking is still a draft or pending.
                 </p>
                 <div className="field">
                   <label htmlFor="accepted-date">Written acceptance date</label>
@@ -755,7 +755,7 @@ export function BookingEditorPage() {
                   disabled={accept.isPending || !acceptanceReference.trim()}
                   onClick={() => accept.mutate()}
                 >
-                  {accept.isPending ? 'Recording…' : 'Record written acceptance'}
+                  {accept.isPending ? 'Finalizing…' : 'Finalize booking'}
                 </button>
               </div>
             )}
@@ -770,18 +770,21 @@ export function BookingEditorPage() {
               >
                 {generate.isPending
                   ? 'Generating…'
-                  : booking.status === 'accepted'
+                  : booking.status === 'finalized'
                     ? 'Save final PDF version'
-                    : 'Save draft PDF'}
+                    : booking.status === 'pending'
+                      ? 'Save pending PDF version'
+                      : 'Save as pending PDF'}
               </button>
               <Link className="button" to={`/invoices/new?booking=${booking.id}`}>
                 Create invoice draft
               </Link>
             </div>
             <p className="muted">
-              Preview is temporary. Saving stores a version in Documents: draft until written
-              acceptance is recorded, then final. Download the saved PDF to sign it in a compatible
-              PDF app. Saving or issuing a document does not send email or record acceptance.
+              Preview is temporary. Saving stores a version in Documents and moves the booking to
+              pending; written acceptance moves it to finalized. Download the saved PDF to complete
+              its signature fields in a compatible PDF app. Saving or issuing a document does not
+              send email or record acceptance.
             </p>
             {generate.data && (
               <p role="status">

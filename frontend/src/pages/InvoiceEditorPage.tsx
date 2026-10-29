@@ -302,7 +302,7 @@ export function InvoiceEditorPage() {
                 </div>
                 <div className="field">
                   <label htmlFor="due_date">
-                    Due date · follows accepted Net {booking?.payment_terms_days ?? '15'} terms
+                    Due date · follows Net {booking?.payment_terms_days ?? '15'} booking terms
                   </label>
                   <input id="due_date" type="date" {...form.register('due_date')} />
                 </div>
@@ -311,11 +311,9 @@ export function InvoiceEditorPage() {
             <Panel>
               <div className="section-heading">
                 <h2>Itemized charges</h2>
-                <span className="muted">Source charges are locked to the accepted booking</span>
+                <span className="muted">Charges follow the saved booking amounts</span>
               </div>
-              {!booking && (
-                <p className="muted">Select an accepted booking to load its agreed charges.</p>
-              )}
+              {!booking && <p className="muted">Select a saved booking to load its charges.</p>}
               <div className="line-list" role="group" aria-label="Invoice line items">
                 <div className="invoice-line-row invoice-line-row--head">
                   <span>Item</span>
@@ -343,7 +341,7 @@ export function InvoiceEditorPage() {
                       <span>
                         {lines[index]?.description}
                         <small className="table-subline">
-                          {isBase ? 'Accepted booking charge' : 'Approved additional expense'}
+                          {isBase ? 'Booking charge' : 'Approved additional expense'}
                         </small>
                       </span>
                       <span>

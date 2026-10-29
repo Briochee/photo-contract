@@ -1,4 +1,4 @@
-Version: 21
+Version: 22
 
 # Repository Guidelines
 
@@ -15,7 +15,7 @@ Contract Studio manages local clients, agreements, bookings, invoices, and PDFs.
 
 ## Development Conventions
 
-Use four spaces and type annotations in Python (`snake_case`, Ruff configured in `backend/pyproject.toml`). Keep API contracts in Pydantic schemas, authoritative money math in `backend/app/services/pricing.py`, persistence in SQLAlchemy models/repositories, and document layout in Jinja templates. Store money as integer USD cents and quantities as validated decimal strings. Draft bookings may change; accepted booking snapshots and issued invoices must remain immutable unless a recorded amendment or revision is created.
+Use four spaces and type annotations in Python (`snake_case`, Ruff configured in `backend/pyproject.toml`). Keep API contracts in Pydantic schemas, authoritative money math in `backend/app/services/pricing.py`, persistence in SQLAlchemy models/repositories, and document layout in Jinja templates. Store money as integer USD cents and quantities as validated decimal strings. Bookings remain editable while draft or pending; saving a booking confirmation moves it to pending, and recording written acceptance finalizes it. Finalized booking snapshots and issued invoices remain immutable unless a recorded amendment or revision is created.
 
 Use strict TypeScript, functional React components, CSS Modules, TanStack Query for server state, and React Hook Form with Zod for forms. Keep API calls centralized in `frontend/src/services/api.ts`. `npm run desktop --prefix frontend` builds the UI, runs migrations, and launches Electron with its backend child. Do not add remote fonts, assets, telemetry, cloud services, or runtime network dependencies.
 
@@ -27,11 +27,11 @@ Bookings support any photography session or event. Keep event types free-form, w
 
 Client detail pages may delete an agreement only when no booking references it. Keep generated PDF copies in the document library after deleting the agreement record.
 
-Only draft bookings may be deleted. Delete their unpaid draft invoices with them and detach, but preserve, generated PDFs; retain accepted bookings and bookings with issued invoices or payment records. Keep reference sequences intact so deleted references are never reused.
+Only unaccepted draft or pending bookings may be deleted. Delete their unpaid draft invoices with them and detach, but preserve, generated PDFs; retain finalized bookings and bookings with issued invoices or payment records. Keep reference sequences intact so deleted references are never reused.
 
 Settings may clear all local business records, profile/preferences, generated PDFs, imported legacy files, and logs only after explicit confirmation. Keep reference sequences to prevent reusing identifiers and never remove backups or original source files outside the configured data directory.
 
-The document library can delete a saved PDF and its library record while retaining the related client, booking, agreement, or invoice. Confirm permanent file removal. Draft invoices may be prepared and issued before acceptance evidence is recorded; issuing an invoice never marks contractual acceptance. Agreement and booking PDFs remain drafts until written acceptance is recorded, while issued invoice snapshots are immutable and corrected through replacement revisions.
+The document library can delete a saved PDF and its library record while retaining the related client, booking, agreement, or invoice. Confirm permanent file removal. Draft invoices may be prepared and issued before acceptance evidence is recorded; issuing an invoice never marks contractual acceptance. Saved agreement and booking PDFs remain pending until written acceptance is recorded; previews remain drafts. Issued invoice snapshots are immutable and corrected through replacement revisions.
 
 Electron PDF previews use Chromium's local PDF viewer. Keep plugin support enabled for the app and permit popup windows only for blob URLs created by the local backend origin. Master agreement and booking confirmation PDFs contain AcroForm signature/date fields added after Chromium rendering; invoices do not require signatures. The app records acceptance evidence separately and does not verify identity from a filled PDF.
 

@@ -98,7 +98,7 @@ def document_context(
         booking = get_booking(session, entity_id)
         if booking is None:
             raise LookupError("Booking not found")
-        if booking.status == "accepted" and booking.accepted_snapshot_json:
+        if booking.status in {"accepted", "finalized"} and booking.accepted_snapshot_json:
             source = json.loads(booking.accepted_snapshot_json)
             data = source["booking"]
             photographer = source["photographer"]
@@ -136,7 +136,13 @@ def document_context(
             "photographer": photographer,
             "client_name": data["client"]["legal_name"],
             "client": data["client"],
-            "status_label": "Accepted terms" if booking.status == "accepted" else "Draft preview",
+            "status_label": (
+                "Finalized terms"
+                if booking.status in {"accepted", "finalized"}
+                else "Pending acceptance"
+                if booking.status == "pending"
+                else "Draft preview"
+            ),
             "pricing_items": pricing_items,
             "total_agreed_cents": sum(item["amount_cents"] for item in pricing_items),
             "invoice_reference": _current_invoice_reference(booking),
@@ -310,8 +316,14 @@ def generate_document(
             session, document_type, entity_id
         )
         promote_agreement_to_pending = document_type == "agreement" and entity_status == "draft"
+        promote_booking_to_pending = (
+            document_type == "booking_confirmation" and entity_status == "draft"
+        )
         if promote_agreement_to_pending:
             context["status_label"] = "Pending signature"
+            entity_status = "pending"
+        if promote_booking_to_pending:
+            context["status_label"] = "Pending acceptance"
             entity_status = "pending"
         if not _REFERENCE.fullmatch(reference):
             raise ValueError("The generated document reference is not a safe filename")
@@ -366,7 +378,8 @@ def generate_document(
                 "final"
                 if entity_status in {"accepted", "finalized", "issued"}
                 else "pending"
-                if document_type == "agreement" and entity_status == "pending"
+                if document_type in {"agreement", "booking_confirmation"}
+                and entity_status == "pending"
                 else "draft"
             ),
             file_path=str(destination),
@@ -379,6 +392,10 @@ def generate_document(
             agreement = session.get(MasterAgreement, entity_id)
             if agreement is not None:
                 agreement.status = "pending"
+        if promote_booking_to_pending:
+            booking = session.get(Booking, entity_id)
+            if booking is not None:
+                booking.status = "pending"
         session.commit()
     except Exception:
         session.rollback()

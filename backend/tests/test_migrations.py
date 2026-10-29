@@ -7,7 +7,13 @@ from datetime import date
 from alembic.config import Config
 from alembic.script import ScriptDirectory
 from backend.app.migrations import CURRENT_REVISION, upgrade_database
-from backend.app.models import Client, GeneratedDocument, MasterAgreement, PhotographerProfile
+from backend.app.models import (
+    Booking,
+    Client,
+    GeneratedDocument,
+    MasterAgreement,
+    PhotographerProfile,
+)
 from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import Session
 
@@ -38,19 +44,22 @@ def test_single_baseline_creates_latest_schema(tmp_path) -> None:
         assert agreement_columns["effective_date"]["nullable"]
         with engine.connect() as connection:
             assert connection.scalar(text("SELECT version_num FROM alembic_version")) == (
-                CURRENT_REVISION
+                "0002_booking_lifecycle"
             )
     finally:
         engine.dispose()
 
     script = ScriptDirectory.from_config(Config("backend/alembic.ini"))
     revisions = list(script.walk_revisions())
-    assert script.get_heads() == [CURRENT_REVISION]
-    assert len(revisions) == 1
+    assert script.get_heads() == ["0002_booking_lifecycle"]
+    assert {revision.revision for revision in revisions} == {
+        CURRENT_REVISION,
+        "0002_booking_lifecycle",
+    }
 
 
-def test_legacy_0003_database_migrates_without_losing_agreement_data(tmp_path) -> None:
-    """Reconcile a 0003 database after making the effective-date column nullable."""
+def test_legacy_0003_database_migrates_without_losing_records(tmp_path) -> None:
+    """Reconcile an older schema and align saved booking documents with their lifecycle."""
     database_path = tmp_path / "studio.sqlite3"
     database_url = _database_url(database_path)
     upgrade_database(database_url)
@@ -75,6 +84,22 @@ def test_legacy_0003_database_migrates_without_losing_agreement_data(tmp_path) -
             )
             session.add(agreement)
             session.flush()
+            pending_booking = Booking(
+                booking_ref="BK-2026-001",
+                client_id=client.id,
+                event_name="Portrait session",
+                event_date=date(2026, 11, 20),
+                status="draft",
+            )
+            accepted_booking = Booking(
+                booking_ref="BK-2026-002",
+                client_id=client.id,
+                event_name="Wedding",
+                event_date=date(2026, 11, 21),
+                status="accepted",
+            )
+            session.add_all([pending_booking, accepted_booking])
+            session.flush()
             session.add(
                 GeneratedDocument(
                     document_type="agreement",
@@ -88,7 +113,23 @@ def test_legacy_0003_database_migrates_without_losing_agreement_data(tmp_path) -
                     source_snapshot_json="{}",
                 )
             )
+            session.add(
+                GeneratedDocument(
+                    document_type="booking_confirmation",
+                    client_id=client.id,
+                    booking_id=pending_booking.id,
+                    reference=pending_booking.booking_ref,
+                    version=1,
+                    status="draft",
+                    file_path="booking-confirmation.pdf",
+                    content_hash="c" * 64,
+                    template_version="1.0.0",
+                    source_snapshot_json="{}",
+                )
+            )
             agreement_id = agreement.id
+            pending_booking_id = pending_booking.id
+            accepted_booking_id = accepted_booking.id
             session.commit()
     finally:
         engine.dispose()
@@ -113,11 +154,22 @@ def test_legacy_0003_database_migrates_without_losing_agreement_data(tmp_path) -
             document_status = connection.scalar(
                 text("SELECT status FROM generated_documents WHERE reference = 'AGR-2026-001'")
             )
+            booking_states = connection.execute(
+                text("SELECT id, status FROM bookings ORDER BY id")
+            ).all()
+            booking_document_status = connection.scalar(
+                text("SELECT status FROM generated_documents WHERE reference = 'BK-2026-001'")
+            )
             revision = connection.scalar(text("SELECT version_num FROM alembic_version"))
         assert agreement.effective_date is None
         assert agreement.status == "pending"
         assert document_status == "pending"
-        assert revision == CURRENT_REVISION
+        assert booking_states == [
+            (pending_booking_id, "pending"),
+            (accepted_booking_id, "finalized"),
+        ]
+        assert booking_document_status == "pending"
+        assert revision == "0002_booking_lifecycle"
     finally:
         engine.dispose()
 

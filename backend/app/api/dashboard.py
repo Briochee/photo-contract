@@ -42,7 +42,9 @@ def dashboard(session: Session = Depends(get_session)):
         if booking.event_date >= today and booking.status != "cancelled"
     ][:6]
     return {
-        "active_bookings": sum(booking.status in {"draft", "accepted"} for booking in bookings),
+        "active_bookings": sum(
+            booking.status in {"draft", "pending", "finalized"} for booking in bookings
+        ),
         "upcoming_assignments": upcoming,
         "draft_invoices": sum(invoice.status == "draft" for invoice in invoices),
         "outstanding_invoices": sum(

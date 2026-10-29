@@ -18,7 +18,7 @@ describe('DashboardPage', () => {
           event_name: 'Annual meeting',
           event_date: '2026-11-20',
           client_name: 'Example Corporation',
-          status: 'accepted',
+          status: 'finalized',
         },
       ],
       draft_invoices: 1,

@@ -54,7 +54,7 @@ def create_invoice(payload: InvoiceInput, session: Session = Depends(get_session
     )
     if payload.due_date != expected_due:
         raise HTTPException(
-            422, f"Due date must follow the accepted payment terms ({expected_due.isoformat()})"
+            422, f"Due date must follow the booking payment terms ({expected_due.isoformat()})"
         )
     try:
         session.rollback()
@@ -104,7 +104,7 @@ def update_invoice(invoice_id: int, payload: InvoiceInput, session: Session = De
     )
     if payload.due_date != expected_due:
         raise HTTPException(
-            422, f"Due date must follow the accepted payment terms ({expected_due.isoformat()})"
+            422, f"Due date must follow the booking payment terms ({expected_due.isoformat()})"
         )
     try:
         invoice.invoice_date = payload.invoice_date

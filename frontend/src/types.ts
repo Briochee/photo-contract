@@ -69,7 +69,7 @@ export type Booking = {
   overtime_rate_cents: number
   payment_terms_days: number
   exceptions: string
-  status: 'draft' | 'accepted' | 'cancelled'
+  status: 'draft' | 'pending' | 'finalized' | 'cancelled'
   accepted_at: string | null
   acceptance_reference: string
   line_items: LineItem[]

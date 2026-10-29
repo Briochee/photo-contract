@@ -258,7 +258,7 @@ def make_invoice_lines(booking: Booking) -> list[InvoiceLineItem]:
 
 
 def select_invoice_lines(booking: Booking, inputs: list[Any]) -> list[InvoiceLineItem]:
-    """Build draft invoice rows only from accepted booking charges or approved expenses."""
+    """Build invoice rows from saved booking charges and approved additional expenses."""
     if not inputs:
         return make_invoice_lines(booking)
     base_by_id = {item.id: item for item in booking.line_items}
@@ -290,7 +290,7 @@ def select_invoice_lines(booking: Booking, inputs: list[Any]) -> list[InvoiceLin
             or calculated["amount_cents"] != source_item.amount_cents
         ):
             raise ValueError(
-                "Invoice lines must preserve the accepted source charge description and amounts"
+                "Invoice lines must preserve the saved booking charge descriptions and amounts"
             )
         result.append(
             InvoiceLineItem(

@@ -25,6 +25,11 @@ export function InvoicesPage() {
         eyebrow="Accounts / Receivables"
         title="Invoices"
         description="Review drafts, record payments, and keep issued invoice versions unchanged."
+        action={
+          <Link className="button button--primary" to="/invoices/new">
+            Create invoice
+          </Link>
+        }
       />
       <Panel>
         <ErrorMessage error={invoices.error} />
@@ -98,10 +103,10 @@ export function InvoicesPage() {
         ) : (
           <EmptyState
             title="No invoices in this view"
-            detail="Create an invoice from an accepted booking."
+            detail="Create an invoice from any saved booking. Client acceptance is not required to prepare or issue it."
             action={
-              <Link className="button" to="/bookings">
-                Open bookings
+              <Link className="button" to="/invoices/new">
+                Create invoice
               </Link>
             }
           />

@@ -471,16 +471,19 @@ export function ClientDetailPage() {
                           <button
                             className="text-button text-button--danger"
                             type="button"
-                            disabled={booking.status !== 'draft' || deleteBooking.isPending}
+                            disabled={
+                              !['draft', 'pending'].includes(booking.status) ||
+                              deleteBooking.isPending
+                            }
                             title={
-                              booking.status === 'draft'
-                                ? 'Delete this draft and any unpaid draft invoices.'
-                                : 'Accepted and cancelled bookings are retained for the record.'
+                              ['draft', 'pending'].includes(booking.status)
+                                ? 'Delete this unaccepted booking and any unpaid draft invoices.'
+                                : 'Finalized and cancelled bookings are retained for the record.'
                             }
                             aria-label={`Delete booking ${booking.booking_ref}`}
                             onClick={() => {
                               const confirmed = window.confirm(
-                                `Delete draft booking ${booking.booking_ref}? Any unpaid draft invoices will also be deleted. Saved PDFs remain in Documents without a booking link. Accepted bookings and bookings with issued invoices or payments cannot be deleted.`,
+                                `Delete unaccepted booking ${booking.booking_ref}? Any unpaid draft invoices will also be deleted. Saved PDFs remain in Documents without a booking link. Finalized bookings and bookings with issued invoices or payments cannot be deleted.`,
                               )
                               if (confirmed) deleteBooking.mutate(booking.id)
                             }}

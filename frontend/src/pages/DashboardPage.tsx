@@ -112,10 +112,10 @@ export function DashboardPage() {
                   <strong>New booking</strong>
                   <small>Draft a confirmation</small>
                 </Link>
-                <Link to="/invoices" className="quick-action">
+                <Link to="/invoices/new" className="quick-action">
                   <span>03</span>
                   <strong>Create invoice</strong>
-                  <small>Start from an accepted booking</small>
+                  <small>Select any saved booking</small>
                 </Link>
                 <Link to="/documents" className="quick-action">
                   <span>04</span>

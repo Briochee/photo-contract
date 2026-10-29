@@ -137,10 +137,8 @@ def delete_booking(booking_id: int, session: Session = Depends(get_session)) -> 
     booking = session.get(Booking, booking_id)
     if booking is None:
         raise HTTPException(404, "Booking not found")
-    if booking.status != "draft":
-        raise HTTPException(
-            409, "Only draft bookings can be deleted; accepted records are retained"
-        )
+    if booking.status not in {"draft", "pending"}:
+        raise HTTPException(409, "Only unaccepted draft or pending bookings can be deleted")
 
     invoices = session.scalars(select(Invoice).where(Invoice.booking_id == booking_id)).all()
     if any(
@@ -199,8 +197,8 @@ def update_booking(booking_id: int, payload: BookingInput, session: Session = De
     booking = get_booking(session, booking_id)
     if booking is None:
         raise HTTPException(404, "Booking not found")
-    if booking.status != "draft":
-        raise HTTPException(409, "Accepted bookings require a documented amendment")
+    if booking.status not in {"draft", "pending"}:
+        raise HTTPException(409, "Finalized bookings require a documented amendment")
     if payload.client_id != booking.client_id:
         raise HTTPException(422, "A booking cannot be reassigned to another client")
     if payload.agreement_id is not None:
@@ -230,14 +228,14 @@ def accept_booking(
     booking = get_booking(session, booking_id)
     if booking is None:
         raise HTTPException(404, "Booking not found")
-    if booking.status != "draft":
-        raise HTTPException(409, "Only draft bookings can be accepted")
+    if booking.status not in {"draft", "pending"}:
+        raise HTTPException(409, "Only draft or pending bookings can be finalized")
     if not booking.line_items:
         raise HTTPException(422, "Add at least one agreed charge before accepting the booking")
     if not payload.acceptance_reference.strip():
         raise HTTPException(422, "Record the client's written acceptance reference")
     profile = session.scalar(select(PhotographerProfile).order_by(PhotographerProfile.id).limit(1))
-    booking.status = "accepted"
+    booking.status = "finalized"
     booking.accepted_at = datetime.combine(payload.accepted_date, time.min, tzinfo=UTC)
     booking.acceptance_reference = payload.acceptance_reference
     session.flush()
@@ -317,8 +315,8 @@ def add_amendment(
     booking = get_booking(session, booking_id)
     if booking is None:
         raise HTTPException(404, "Booking not found")
-    if booking.status != "accepted":
-        raise HTTPException(409, "Amendments are available for accepted bookings")
+    if booking.status != "finalized":
+        raise HTTPException(409, "Amendments are available for finalized bookings")
     invalid = set(payload.changes) - EDITABLE_AMENDMENT_FIELDS
     if invalid:
         raise HTTPException(422, f"Unsupported amendment fields: {', '.join(sorted(invalid))}")
