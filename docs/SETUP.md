@@ -4,7 +4,7 @@
 
 - Python 3.12 or newer.
 - Node.js 22.12+ and npm (required by the Electron runtime package).
-- Playwright's local Chromium browser for PDF rendering.
+- Playwright's local Chromium browser for PDF rendering and pypdf for fillable signature fields.
 - macOS, Windows, or Linux. Calibri is used when installed locally; Carlito/Arial are fallbacks. Fonts are not downloaded.
 
 ## Install
@@ -87,7 +87,7 @@ npm run format:check --prefix frontend
 npm run build --prefix frontend
 ```
 
-Backend tests use isolated in-memory SQLite databases. PDF rendering tests require the installed Playwright Chromium binary.
+Backend tests use isolated in-memory SQLite databases. PDF rendering tests require the installed Playwright Chromium binary. Master agreements and booking confirmations include AcroForm signature, date, and signer-detail fields; complete them in a PDF reader that supports AcroForms and digital-signature fields, such as Adobe Acrobat Reader. Save the signed copy separately and record acceptance evidence in the app. These fields do not independently verify signer identity or mark a record accepted. Invoices do not require signatures.
 
 ## Existing Streamlit Data, Backup, and Restore
 

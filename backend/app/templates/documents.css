@@ -1,4 +1,4 @@
-@page { size: Letter; margin: 0.78in 0.78in 0.74in; }
+@page { size: Letter; margin: 0.85in 0.78in 0.80in; }
 * { box-sizing: border-box; }
 html { color: #24241f; background: #fff; font-family: Calibri, Carlito, Arial, sans-serif; font-size: 10pt; line-height: 1.48; }
 body { margin: 0; }
@@ -31,15 +31,24 @@ td { padding: 8px 6px; border-bottom: 1px solid rgba(36,36,31,.18); vertical-ali
 .assignment-band .label { grid-column: 1 / -1; }
 .assignment-band span:last-child { color: #66645d; }
 .small { color: #66645d; font-size: 8.5pt; }
-.signatures { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; margin-top: 18px; page-break-inside: avoid; break-inside: avoid; }
-.signatures p { margin: 8px 0; }
-.signature-line { height: 24px; border-bottom: 1px solid #24241f; margin-top: 6px; }
-.signatures span { color: #66645d; font-size: 8pt; }
+.signature-page { break-before: page; page-break-before: always; min-height: 8.55in; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
+.document--agreement .signature-page h2 { width: 100%; }
+.signature-page > p { max-width: 6.4in; }
+.signature-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 34px; width: 100%; max-width: 6.5in; margin: 28px auto 0; text-align: left; }
+.signature-party { min-width: 0; }
+.signature-party h3 { margin: 0 0 13px; padding-bottom: 7px; border-bottom: 1px solid rgba(36,36,31,.25); font-size: 11pt; }
+.signature-name { min-height: 34px; margin: 0 0 14px; }
+.signature-field-row { margin-top: 11px; }
+.signature-field-row > span { color: #66645d; font-size: 8pt; }
+.pdf-form-field { height: 23px; border-bottom: 1px solid #24241f; }
+.pdf-signature-field { height: 34px; }
+.form-instructions { margin-top: 25px; color: #66645d; font-size: 8pt; text-align: center; }
 .legal-copy h1, .legal-copy h2 { break-after: avoid; page-break-after: avoid; }
 .legal-copy h2 { margin-top: 18px; }
 .legal-copy p { orphans: 3; widows: 3; }
 .legal-copy strong { font-weight: 700; }
 section { break-inside: avoid; page-break-inside: avoid; }
 .document--agreement section, .legal-copy { break-inside: auto; page-break-inside: auto; }
+.document--agreement .signature-page, .document--booking .signature-page { break-inside: avoid; page-break-inside: avoid; }
 tr { break-inside: avoid; page-break-inside: avoid; }
 @media print { a { color: inherit; text-decoration: none; } .status { print-color-adjust: exact; } }

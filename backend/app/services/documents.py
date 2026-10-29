@@ -35,9 +35,16 @@ from backend.app.services.domain import (
     profile_values,
     snapshot,
 )
+from backend.app.services.pdf_forms import add_pdf_form_fields
 
 DocumentType = Literal["agreement", "booking_confirmation", "invoice"]
 _REFERENCE = re.compile(r"^[A-Z]{2,4}-\d{4}-\d{3,}$")
+_PDF_MARGIN_POINTS = {
+    "top": 0.85 * 72,
+    "right": 0.78 * 72,
+    "bottom": 0.8 * 72,
+    "left": 0.78 * 72,
+}
 _JINJA = Environment(
     loader=FileSystemLoader(TEMPLATES_DIR),
     autoescape=select_autoescape(("html", "xml")),
@@ -68,9 +75,7 @@ def document_context(
         source = json.loads(agreement.source_snapshot_json)
         legal = agreement.legal_text_snapshot
         legal = _substitute_header_lines(legal, source)
-        markdown_html = MarkdownIt("commonmark", {"html": False, "typographer": False}).render(
-            legal
-        )
+        legal_html = _agreement_html(legal, source)
         context = {
             "title": "Master Photography Services Agreement",
             "document_type": "agreement",
@@ -81,7 +86,7 @@ def document_context(
             "status_label": "Accepted agreement"
             if agreement.status == "accepted"
             else "Draft preview",
-            "legal_html": Markup(markdown_html),
+            "legal_html": Markup(legal_html),
         }
         return agreement.agreement_ref, source["client"]["legal_name"], context, agreement.status
 
@@ -176,6 +181,8 @@ def render_pdf(document_type: DocumentType, context: dict[str, Any]) -> bytes:
         "invoice": "invoice.html",
     }[document_type]
     html_document = _JINJA.get_template(template_name).render(**context)
+    pdf_content = b""
+    form_fields: list[dict[str, Any]] = []
     header = (
         '<div style="width:100%;font-size:8px;color:#66645d;padding:0 0.78in;display:flex;'
         'justify-content:space-between;border-bottom:1px solid #b7b6af;">'
@@ -195,10 +202,39 @@ def render_pdf(document_type: DocumentType, context: dict[str, Any]) -> bytes:
         with sync_playwright() as playwright:
             browser = playwright.chromium.launch()
             try:
-                page = browser.new_page()
+                page = browser.new_page(
+                    viewport={
+                        "width": round(
+                            8.5 * 96
+                            - (_PDF_MARGIN_POINTS["left"] + _PDF_MARGIN_POINTS["right"]) * 96 / 72
+                        ),
+                        "height": round(
+                            11 * 96
+                            - (_PDF_MARGIN_POINTS["top"] + _PDF_MARGIN_POINTS["bottom"]) * 96 / 72
+                        ),
+                    }
+                )
                 page.set_content(html_document, wait_until="load")
                 page.evaluate("document.fonts.ready")
-                return page.pdf(
+                page.emulate_media(media="print")
+                form_fields = page.locator("[data-pdf-field]").evaluate_all(
+                    """elements => elements.map(element => {
+                      const page = element.closest('[data-pdf-signature-page]');
+                      if (!page) throw new Error('PDF input is outside its signature page');
+                      const bounds = element.getBoundingClientRect();
+                      const pageBounds = page.getBoundingClientRect();
+                      return {
+                        name: element.dataset.pdfField,
+                        type: element.dataset.pdfFieldType,
+                        label: element.dataset.pdfFieldLabel,
+                        x: bounds.left - pageBounds.left,
+                        y: bounds.top - pageBounds.top,
+                        width: bounds.width,
+                        height: bounds.height,
+                      };
+                    })"""
+                )
+                pdf_content = page.pdf(
                     format="Letter",
                     print_background=True,
                     prefer_css_page_size=True,
@@ -206,18 +242,52 @@ def render_pdf(document_type: DocumentType, context: dict[str, Any]) -> bytes:
                     header_template=header,
                     footer_template=footer,
                     margin={
-                        "top": "0.85in",
-                        "right": "0.78in",
-                        "bottom": "0.8in",
-                        "left": "0.78in",
+                        key: f"{value / 72:.2f}in" for key, value in _PDF_MARGIN_POINTS.items()
                     },
                 )
             finally:
                 browser.close()
+        return add_pdf_form_fields(
+            pdf_content,
+            form_fields,
+            left_margin_points=_PDF_MARGIN_POINTS["left"],
+            top_margin_points=_PDF_MARGIN_POINTS["top"],
+        )
     except PlaywrightError as exc:
         raise RuntimeError(
             "Chromium could not render the PDF. Check the local Playwright browser installation."
         ) from exc
+    except (ValueError, TypeError, KeyError) as exc:
+        raise RuntimeError("The PDF's signature fields could not be prepared safely.") from exc
+
+
+def _agreement_html(legal: str, snapshot_data: dict[str, Any]) -> str:
+    """Render the authoritative legal copy and format its signature block as a fillable page."""
+    heading = "## 16. Signatures"
+    if heading not in legal:
+        raise ValueError("The agreement source is missing its signature section")
+    agreement_body, signature_section = legal.split(heading, maxsplit=1)
+    signature_prose, signer_placeholder = signature_section.split("**Photographer**", maxsplit=1)
+    if "**Client**" not in signer_placeholder:
+        raise ValueError("The agreement source is missing a client signature block")
+
+    markdown = MarkdownIt("commonmark", {"html": False, "typographer": False})
+    body_html = markdown.render(agreement_body)
+    signature_intro = markdown.render(f"{heading}{signature_prose}")
+    photographer = snapshot_data.get("photographer", {})
+    client = snapshot_data.get("client", {})
+    signature_fields = _JINJA.get_template("agreement_signatures.html").render(
+        photographer_legal_name=_plain_text(photographer.get("legal_name"))
+        or _person_name(photographer),
+        client_legal_name=_plain_text(client.get("legal_name")),
+    )
+    return (
+        body_html
+        + '<section class="signature-page" data-pdf-signature-page>'
+        + signature_intro
+        + signature_fields
+        + "</section>"
+    )
 
 
 def generate_document(

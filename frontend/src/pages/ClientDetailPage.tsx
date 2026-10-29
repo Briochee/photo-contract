@@ -337,8 +337,9 @@ export function ClientDetailPage() {
             )}
           </div>
           <p className="inline-note">
-            The agreement takes effect on the date of the last signature. The app records the date
-            and evidence reference you enter; it does not capture or verify signatures.
+            The PDF includes signer, date, and digital signature fields. Sign it in a compatible PDF
+            app, save the signed copy, then record the last signature date and where that copy is
+            stored. The app does not verify signer identity or automatically record acceptance.
           </p>
         </Panel>
         <Panel>

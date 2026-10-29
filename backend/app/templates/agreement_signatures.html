@@ -1,0 +1,35 @@
+<div class="signature-columns">
+  <section class="signature-party">
+    <h3>Photographer</h3>
+    <p class="signature-name"><strong>Legal Name:</strong><br>{{ photographer_legal_name }}</p>
+    <div class="signature-field-row">
+      <span>Photographer signer name / title:</span>
+      <div class="pdf-form-field" data-pdf-field="agreement.photographer.signer_name_title" data-pdf-field-type="text" data-pdf-field-label="Photographer signer name and title"></div>
+    </div>
+    <div class="signature-field-row">
+      <span>Signature:</span>
+      <div class="pdf-form-field pdf-signature-field" data-pdf-field="agreement.photographer.signature" data-pdf-field-type="signature" data-pdf-field-label="Photographer digital signature"></div>
+    </div>
+    <div class="signature-field-row">
+      <span>Date:</span>
+      <div class="pdf-form-field" data-pdf-field="agreement.photographer.date" data-pdf-field-type="text" data-pdf-field-label="Photographer signature date"></div>
+    </div>
+  </section>
+  <section class="signature-party">
+    <h3>Client</h3>
+    <p class="signature-name"><strong>Legal Entity:</strong><br>{{ client_legal_name }}</p>
+    <div class="signature-field-row">
+      <span>Authorized Representative / Title:</span>
+      <div class="pdf-form-field" data-pdf-field="agreement.client.authorized_representative" data-pdf-field-type="text" data-pdf-field-label="Client authorized representative and title"></div>
+    </div>
+    <div class="signature-field-row">
+      <span>Signature:</span>
+      <div class="pdf-form-field pdf-signature-field" data-pdf-field="agreement.client.signature" data-pdf-field-type="signature" data-pdf-field-label="Client digital signature"></div>
+    </div>
+    <div class="signature-field-row">
+      <span>Date:</span>
+      <div class="pdf-form-field" data-pdf-field="agreement.client.date" data-pdf-field-type="text" data-pdf-field-label="Client signature date"></div>
+    </div>
+  </section>
+</div>
+<p class="form-instructions">Complete the signature and date fields using a PDF reader that supports form fields and digital signatures.</p>

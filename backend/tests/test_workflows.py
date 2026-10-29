@@ -1,6 +1,9 @@
 """Contract tests for linked client, booking, invoice, and payment records."""
 
 from datetime import date, timedelta
+from io import BytesIO
+
+from pypdf import PdfReader, PdfWriter
 
 
 def test_dynamic_same_origin_write_and_cross_site_write_protection(client) -> None:
@@ -107,8 +110,50 @@ def test_booking_invoice_payments_and_immutability(client) -> None:
         "/api/documents/preview",
         json={"document_type": "agreement", "entity_id": agreement["id"]},
     )
-    assert agreement_pdf.status_code == 200
+    assert agreement_pdf.status_code == 200, agreement_pdf.text
     assert agreement_pdf.content.startswith(b"%PDF-")
+    agreement_reader = PdfReader(BytesIO(agreement_pdf.content))
+    agreement_fields = agreement_reader.get_fields() or {}
+    assert set(agreement_fields) == {
+        "agreement.photographer.signature",
+        "agreement.photographer.date",
+        "agreement.photographer.signer_name_title",
+        "agreement.client.authorized_representative",
+        "agreement.client.signature",
+        "agreement.client.date",
+    }
+    assert agreement_fields["agreement.client.signature"]["/FT"] == "/Sig"
+    assert "16. Signatures" in agreement_reader.pages[-1].extract_text()
+    assert all("16. Signatures" not in page.extract_text() for page in agreement_reader.pages[:-1])
+    agreement_widgets = {
+        annotation.get_object()["/T"]: annotation.get_object()["/Rect"]
+        for annotation in agreement_reader.pages[-1].get("/Annots", [])
+        if annotation.get_object().get("/Subtype") == "/Widget"
+    }
+    photographer_signature = agreement_widgets["agreement.photographer.signature"]
+    client_signature = agreement_widgets["agreement.client.signature"]
+    assert photographer_signature[0] < client_signature[0]
+    assert photographer_signature[1] == client_signature[1]
+    signature_pair_center = (float(photographer_signature[0]) + float(client_signature[2])) / 2
+    assert abs(signature_pair_center - float(agreement_reader.pages[-1].mediabox.width) / 2) < 2
+    filled_writer = PdfWriter()
+    filled_writer.clone_document_from_reader(agreement_reader)
+    filled_writer.update_page_form_field_values(
+        None,
+        {
+            "agreement.photographer.date": "2026-10-29",
+            "agreement.client.authorized_representative": "Jordan Lee, Events Director",
+        },
+        auto_regenerate=False,
+    )
+    filled_pdf = BytesIO()
+    filled_writer.write(filled_pdf)
+    filled_fields = PdfReader(filled_pdf).get_fields() or {}
+    assert filled_fields["agreement.photographer.date"]["/V"] == "2026-10-29"
+    assert (
+        filled_fields["agreement.client.authorized_representative"]["/V"]
+        == "Jordan Lee, Events Director"
+    )
 
     booking_payload = _booking_payload(client_id)
     booking_payload["agreement_id"] = agreement["id"]
@@ -127,8 +172,29 @@ def test_booking_invoice_payments_and_immutability(client) -> None:
         "/api/documents/preview",
         json={"document_type": "booking_confirmation", "entity_id": booking["id"]},
     )
-    assert booking_pdf.status_code == 200
+    assert booking_pdf.status_code == 200, booking_pdf.text
     assert booking_pdf.content.startswith(b"%PDF-")
+    booking_reader = PdfReader(BytesIO(booking_pdf.content))
+    booking_fields = booking_reader.get_fields() or {}
+    assert set(booking_fields) == {
+        "booking.photographer.signature",
+        "booking.photographer.date",
+        "booking.photographer.signer_name_title",
+        "booking.client.authorized_representative",
+        "booking.client.signature",
+        "booking.client.date",
+    }
+    assert booking_fields["booking.client.signature"]["/FT"] == "/Sig"
+    assert "Acceptance" in booking_reader.pages[-1].extract_text()
+    booking_widgets = {
+        annotation.get_object()["/T"]: annotation.get_object()["/Rect"]
+        for annotation in booking_reader.pages[-1].get("/Annots", [])
+        if annotation.get_object().get("/Subtype") == "/Widget"
+    }
+    assert (
+        booking_widgets["booking.photographer.signature"][1]
+        == booking_widgets["booking.client.signature"][1]
+    )
 
     expense = client.post(
         f"/api/bookings/{booking['id']}/expenses",
@@ -199,6 +265,7 @@ def test_booking_invoice_payments_and_immutability(client) -> None:
     )
     assert invoice_pdf.status_code == 200
     assert invoice_pdf.content.startswith(b"%PDF-")
+    assert PdfReader(BytesIO(invoice_pdf.content)).get_fields() is None
     locked_edit = client.patch(f"/api/invoices/{invoice['id']}", json=invoice_payload)
     assert locked_edit.status_code == 409
 

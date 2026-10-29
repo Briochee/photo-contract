@@ -728,9 +728,9 @@ export function BookingEditorPage() {
             {booking.status === 'draft' && (
               <div className="acceptance-controls">
                 <p className="inline-note">
-                  You can save the booking confirmation and prepare an invoice before acceptance.
-                  Record this date and reference only after the client replies in writing; it can be
-                  an email thread or signed-copy location.
+                  You can save the signable booking confirmation and prepare an invoice before
+                  acceptance. Complete its signature and date fields in a compatible PDF app, then
+                  record the date and evidence reference after both Parties accept in writing.
                 </p>
                 <div className="field">
                   <label htmlFor="accepted-date">Written acceptance date</label>
@@ -780,8 +780,8 @@ export function BookingEditorPage() {
             </div>
             <p className="muted">
               Preview is temporary. Saving stores a version in Documents: draft until written
-              acceptance is recorded, then final. Saving or issuing a document does not send email
-              or collect a signature.
+              acceptance is recorded, then final. Download the saved PDF to sign it in a compatible
+              PDF app. Saving or issuing a document does not send email or record acceptance.
             </p>
             {generate.data && (
               <p role="status">

@@ -7,3 +7,4 @@ python-dotenv>=1.0,<2
 Jinja2>=3.1,<4
 markdown-it-py>=3,<5
 playwright>=1.50,<2
+pypdf>=5,<7

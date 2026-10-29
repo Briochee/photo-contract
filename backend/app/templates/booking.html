@@ -24,5 +24,41 @@
 </tbody></table><div class="total-row"><span>Total agreed charges</span><strong>{{ money(total_agreed_cents) }}</strong></div>
 <p class="small">Additional coverage / overtime: {{ money(overtime_rate_cents) }} per hour, only with advance written authorization. Proposed expenses are excluded; approved expenses are itemized above. Applicable taxes, if any, will be confirmed on the invoice. Payment terms: Net {{ payment_terms_days }}. Invoice reference: {{ invoice_reference or "To be assigned" }}.</p></section>
 {% if exceptions %}<section><h2>Exceptions to Master Agreement</h2><p>{{ exceptions }}</p></section>{% endif %}
-<section><h2>Acceptance</h2><p>This Booking Confirmation is incorporated into the Master Photography Services Agreement identified above. Both Parties accept the stated scope, rates, and session details.</p><div class="signatures"><div><strong>Photographer</strong><p>{{ photographer.legal_name or photographer.business_name }}</p><div class="signature-line"></div><span>Signature / Date</span></div><div><strong>Client authorized representative</strong><p>{{ client.primary_contact_name }}{% if client.primary_contact_title %} · {{ client.primary_contact_title }}{% endif %}</p><div class="signature-line"></div><span>Signature / Date</span></div></div></section>
+<section class="signature-page" data-pdf-signature-page>
+  <h2>Acceptance</h2>
+  <p>This Booking Confirmation is incorporated into the Master Photography Services Agreement identified above. Both Parties accept the stated scope, rates, and session details.</p>
+  <div class="signature-columns">
+    <section class="signature-party">
+      <h3>Photographer</h3>
+      <div class="signature-field-row">
+        <span>Photographer signer name / title:</span>
+        <div class="pdf-form-field" data-pdf-field="booking.photographer.signer_name_title" data-pdf-field-type="text" data-pdf-field-label="Photographer signer name and title"></div>
+      </div>
+      <div class="signature-field-row">
+        <span>Signature:</span>
+        <div class="pdf-form-field pdf-signature-field" data-pdf-field="booking.photographer.signature" data-pdf-field-type="signature" data-pdf-field-label="Photographer digital signature"></div>
+      </div>
+      <div class="signature-field-row">
+        <span>Date:</span>
+        <div class="pdf-form-field" data-pdf-field="booking.photographer.date" data-pdf-field-type="text" data-pdf-field-label="Photographer signature date"></div>
+      </div>
+    </section>
+    <section class="signature-party">
+      <h3>Client authorized representative</h3>
+      <div class="signature-field-row">
+        <span>Authorized representative / title:</span>
+        <div class="pdf-form-field" data-pdf-field="booking.client.authorized_representative" data-pdf-field-type="text" data-pdf-field-label="Client authorized representative and title"></div>
+      </div>
+      <div class="signature-field-row">
+        <span>Signature:</span>
+        <div class="pdf-form-field pdf-signature-field" data-pdf-field="booking.client.signature" data-pdf-field-type="signature" data-pdf-field-label="Client digital signature"></div>
+      </div>
+      <div class="signature-field-row">
+        <span>Date:</span>
+        <div class="pdf-form-field" data-pdf-field="booking.client.date" data-pdf-field-type="text" data-pdf-field-label="Client signature date"></div>
+      </div>
+    </section>
+  </div>
+  <p class="form-instructions">Complete the signature and date fields using a PDF reader that supports form fields and digital signatures.</p>
+</section>
 {% endblock %}
