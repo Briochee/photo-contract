@@ -2,7 +2,7 @@
 
 from backend.app.api.agreements import agreement_text
 from backend.app.config import LEGAL_SOURCE
-from backend.app.services.documents import _substitute_header_lines
+from backend.app.services.documents import _JINJA, _substitute_header_lines
 
 
 def test_agreement_source_is_preserved_and_separated_from_other_material() -> None:
@@ -67,10 +67,12 @@ def test_master_agreement_preview_uses_saved_client_and_photographer_fields(
     client, monkeypatch
 ) -> None:
     rendered_context: dict[str, object] = {}
+    rendered_html: dict[str, str] = {}
 
     def render_without_browser(document_type: str, context: dict[str, object]) -> bytes:
         assert document_type == "agreement"
         rendered_context.update(context)
+        rendered_html["html"] = _JINJA.get_template("agreement.html").render(**context)
         return b"%PDF preview"
 
     monkeypatch.setattr("backend.app.api.documents.render_pdf", render_without_browser)
@@ -119,3 +121,70 @@ def test_master_agreement_preview_uses_saved_client_and_photographer_fields(
     assert "[Date]" not in legal_html
     assert "[Address]" not in legal_html
     assert "[Email]" not in legal_html
+    assert "[object Object]" not in rendered_html["html"]
+
+
+def test_booking_confirmation_preview_renders_reference_and_event_fields(
+    client, monkeypatch
+) -> None:
+    rendered_html: dict[str, str] = {}
+
+    def render_without_browser(document_type: str, context: dict[str, object]) -> bytes:
+        assert document_type == "booking_confirmation"
+        rendered_html["html"] = _JINJA.get_template("booking.html").render(**context)
+        return b"%PDF preview"
+
+    monkeypatch.setattr("backend.app.api.documents.render_pdf", render_without_browser)
+    profile = client.patch(
+        "/api/settings",
+        json={"legal_name": "Riley Doe", "email": "riley@example.test"},
+    )
+    assert profile.status_code == 200
+    client_record = client.post("/api/clients", json={"legal_name": "Jordan Lee"})
+    assert client_record.status_code == 201
+    booking = client.post(
+        "/api/bookings",
+        json={
+            "client_id": client_record.json()["id"],
+            "agreement_id": None,
+            "event_name": "Wedding portraits",
+            "event_type": "Wedding",
+            "event_date": "2026-11-20",
+            "venue": "Riverside Garden",
+            "venue_address": "10 River Road",
+            "coverage_start": "09:00",
+            "coverage_end": "15:00",
+            "coverage_hours": "6",
+            "scope": "Ceremony and portraits",
+            "delivery_method": "Online gallery",
+            "delivery_deadline": "Within ten business days after the event",
+            "special_deliverables": "",
+            "guaranteed_image_count": None,
+            "overtime_rate": "150.00",
+            "payment_terms_days": 15,
+            "exceptions": "",
+            "line_items": [
+                {
+                    "description": "Wedding photography",
+                    "quantity": "1",
+                    "unit": "package",
+                    "unit_rate": "1200.00",
+                    "category": "photography",
+                }
+            ],
+            "additional_expenses": [],
+        },
+    )
+    assert booking.status_code == 201
+
+    preview = client.post(
+        "/api/documents/preview",
+        json={"document_type": "booking_confirmation", "entity_id": booking.json()["id"]},
+    )
+
+    assert preview.status_code == 200
+    assert preview.headers["content-type"] == "application/pdf"
+    assert "BK-2026-001" in rendered_html["html"]
+    assert "Wedding portraits" in rendered_html["html"]
+    assert "Riverside Garden" in rendered_html["html"]
+    assert "[object Object]" not in rendered_html["html"]

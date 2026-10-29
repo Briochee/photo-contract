@@ -75,11 +75,35 @@ async function startApplication() {
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
+      plugins: true,
       sandbox: true,
     },
   });
 
-  mainWindow.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    let previewOrigin;
+    try {
+      previewOrigin = new URL(url).origin;
+    } catch {
+      return { action: "deny" };
+    }
+    if (!url.startsWith("blob:") || previewOrigin !== backendOrigin) {
+      return { action: "deny" };
+    }
+    return {
+      action: "allow",
+      overrideBrowserWindowOptions: {
+        width: 1100,
+        height: 900,
+        webPreferences: {
+          plugins: true,
+          contextIsolation: true,
+          nodeIntegration: false,
+          sandbox: true,
+        },
+      },
+    };
+  });
   mainWindow.webContents.on("will-navigate", (event, targetUrl) => {
     if (new URL(targetUrl).origin !== backendOrigin) event.preventDefault();
   });
