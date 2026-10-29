@@ -28,11 +28,11 @@ def upgrade_database(
     config_path: Path | None = None,
     backup_directory: Path | None = None,
 ) -> None:
-    """Upgrade SQLite to the single current baseline, snapshotting known older schemas.
+    """Upgrade SQLite through the baseline and forward revisions with verified backups.
 
-    Existing databases stamped by the former migration chain are backed up, then
-    unstamped so the consolidated migration can reconcile their schema and data.
-    Unknown revisions are rejected without changing the database.
+    Existing databases are snapshotted before schema changes. Databases stamped by the
+    former migration chain are then reconciled against the consolidated baseline. Unknown
+    revisions are rejected without changing the database.
     """
     url = database_url or DATABASE_URL
     parsed_url = make_url(url)
@@ -40,13 +40,16 @@ def upgrade_database(
         raise ValueError("Contract Studio migrations require a SQLite database.")
 
     alembic_config_path = config_path or PROJECT_ROOT / "backend" / "alembic.ini"
-    available_revisions = {
-        script.revision
-        for script in ScriptDirectory.from_config(Config(str(alembic_config_path))).walk_revisions()
-    }
+    script = ScriptDirectory.from_config(Config(str(alembic_config_path)))
+    available_revisions = {revision.revision for revision in script.walk_revisions()}
+    head_revisions = set(script.get_heads())
     database_path = _database_path(parsed_url)
     revisions, tables = _database_state(url, database_path)
     if revisions and revisions.issubset(available_revisions):
+        if revisions != head_revisions and database_path is not None and database_path.is_file():
+            backup_root = backup_directory or database_path.parent / "backups"
+            backup_path = _backup_database(database_path, backup_root)
+            activity.info("database_migration_backup_created file=%s", backup_path.name)
         _run_alembic(url, alembic_config_path)
         return
 

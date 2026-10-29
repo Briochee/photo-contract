@@ -349,6 +349,24 @@ th.numeric {
 .filter-row--single {
   grid-template-columns: minmax(180px, 260px);
 }
+.document-upload-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content;
+  align-items: end;
+  gap: 0.8rem;
+}
+.document-upload-form input[type='file'] {
+  min-width: 0;
+}
+.document-upload-form > .button {
+  white-space: nowrap;
+}
+.document-upload-hint {
+  margin: 0.55rem 0 0;
+}
+.document-upload-hint strong {
+  overflow-wrap: anywhere;
+}
 .search-row input {
   min-height: 42px;
   border: 1px solid var(--line-strong);
@@ -812,6 +830,9 @@ th.numeric {
   }
 }
 @media (max-width: 720px) {
+  .document-upload-form {
+    grid-template-columns: 1fr;
+  }
   .page-header {
     align-items: start;
     flex-direction: column;

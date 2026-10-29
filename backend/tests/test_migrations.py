@@ -44,17 +44,18 @@ def test_single_baseline_creates_latest_schema(tmp_path) -> None:
         assert agreement_columns["effective_date"]["nullable"]
         with engine.connect() as connection:
             assert connection.scalar(text("SELECT version_num FROM alembic_version")) == (
-                "0002_booking_lifecycle"
+                "0003_optional_document_client"
             )
     finally:
         engine.dispose()
 
     script = ScriptDirectory.from_config(Config("backend/alembic.ini"))
     revisions = list(script.walk_revisions())
-    assert script.get_heads() == ["0002_booking_lifecycle"]
+    assert script.get_heads() == ["0003_optional_document_client"]
     assert {revision.revision for revision in revisions} == {
         CURRENT_REVISION,
         "0002_booking_lifecycle",
+        "0003_optional_document_client",
     }
 
 
@@ -169,7 +170,7 @@ def test_legacy_0003_database_migrates_without_losing_records(tmp_path) -> None:
             (accepted_booking_id, "finalized"),
         ]
         assert booking_document_status == "pending"
-        assert revision == "0002_booking_lifecycle"
+        assert revision == "0003_optional_document_client"
     finally:
         engine.dispose()
 

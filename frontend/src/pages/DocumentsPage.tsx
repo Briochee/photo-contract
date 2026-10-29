@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   ErrorMessage,
@@ -17,6 +17,19 @@ export function DocumentsPage() {
   const documents = useQuery({ queryKey: ['documents'], queryFn: api.documents })
   const [previewId, setPreviewId] = useState<number | null>(null)
   const [kind, setKind] = useState('all')
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const fileInput = useRef<HTMLInputElement>(null)
+  const uploadDocument = useMutation({
+    mutationFn: api.uploadDocument,
+    onSuccess: async () => {
+      setSelectedFile(null)
+      if (fileInput.current) fileInput.current.value = ''
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['documents'] }),
+        queryClient.invalidateQueries({ queryKey: ['dashboard'] }),
+      ])
+    },
+  })
   const removeDocument = useMutation({
     mutationFn: api.deleteDocument,
     onSuccess: async (_, deletedId) => {
@@ -32,10 +45,48 @@ export function DocumentsPage() {
   return (
     <>
       <PageHeader
-        eyebrow="Library / Generated PDFs"
+        eyebrow="Library / Local documents"
         title="Documents"
-        description="Versioned agreements, booking confirmations, and invoices stored on this device."
+        description="Generated business PDFs and uploaded reference files, stored on this device."
       />
+      <Panel shadow>
+        <div className="section-heading">
+          <h2>Upload a reference file</h2>
+        </div>
+        <ErrorMessage error={uploadDocument.error} />
+        <form
+          className="document-upload-form"
+          onSubmit={(event) => {
+            event.preventDefault()
+            if (selectedFile) uploadDocument.mutate(selectedFile)
+          }}
+        >
+          <div className="field">
+            <label htmlFor="reference-file">Choose a file</label>
+            <input
+              ref={fileInput}
+              id="reference-file"
+              name="reference-file"
+              type="file"
+              accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+              onChange={(event) => setSelectedFile(event.currentTarget.files?.[0] ?? null)}
+              aria-describedby="reference-file-hint"
+            />
+          </div>
+          <button
+            className="button button--primary"
+            type="submit"
+            disabled={!selectedFile || uploadDocument.isPending}
+          >
+            {uploadDocument.isPending ? 'Saving file…' : 'Add to document library'}
+          </button>
+        </form>
+        <p id="reference-file-hint" className="field-hint document-upload-hint">
+          PDF, JPG, or PNG up to 25 MB. Files stay in this device’s local library and are not
+          attached to a client, booking, or invoice.
+          {selectedFile && <strong> Selected: {selectedFile.name}</strong>}
+        </p>
+      </Panel>
       <Panel>
         <ErrorMessage error={documents.error || removeDocument.error} />
         <p className="muted">
@@ -55,6 +106,7 @@ export function DocumentsPage() {
               <option value="agreement">Master agreements</option>
               <option value="booking_confirmation">Booking confirmations</option>
               <option value="invoice">Invoices</option>
+              <option value="uploaded_file">Uploaded files</option>
             </select>
           </div>
         </div>
@@ -69,7 +121,7 @@ export function DocumentsPage() {
                   <th>Client</th>
                   <th>Related reference</th>
                   <th>Version</th>
-                  <th>Generated</th>
+                  <th>Added</th>
                   <th>Status</th>
                   <th>Actions</th>
                 </tr>
@@ -84,23 +136,33 @@ export function DocumentsPage() {
                       </small>
                     </td>
                     <td>
-                      <Link to={`/clients/${document.client_id}`}>{document.client_name}</Link>
+                      {document.client_id && document.client_name ? (
+                        <Link to={`/clients/${document.client_id}`}>{document.client_name}</Link>
+                      ) : (
+                        <span className="muted">—</span>
+                      )}
                     </td>
                     <td>
-                      {document.invoice_reference ||
-                        document.booking_reference ||
-                        document.reference}
+                      {document.document_type === 'uploaded_file'
+                        ? '—'
+                        : document.invoice_reference ||
+                          document.booking_reference ||
+                          document.reference}
                     </td>
-                    <td>v{document.version}</td>
+                    <td>
+                      {document.document_type === 'uploaded_file' ? '—' : `v${document.version}`}
+                    </td>
                     <td>{dateLabel(document.created_at)}</td>
                     <td>
                       <Status
                         value={
-                          document.status === 'pending'
-                            ? 'Pending signature'
-                            : document.status === 'final'
-                              ? 'Final PDF'
-                              : 'Draft PDF'
+                          document.document_type === 'uploaded_file'
+                            ? 'Stored locally'
+                            : document.status === 'pending'
+                              ? 'Pending signature'
+                              : document.status === 'final'
+                                ? 'Final PDF'
+                                : 'Draft PDF'
                         }
                       />
                     </td>
@@ -121,7 +183,9 @@ export function DocumentsPage() {
                         aria-label={`Delete ${document.name}`}
                         onClick={() => {
                           const confirmed = window.confirm(
-                            `Permanently delete ${document.name} and remove it from the document library? The related ${document.document_type.replaceAll('_', ' ')} record will remain.`,
+                            document.document_type === 'uploaded_file'
+                              ? `Permanently delete ${document.name} from the local document library?`
+                              : `Permanently delete ${document.name} and remove it from the document library? The related ${document.document_type.replaceAll('_', ' ')} record will remain.`,
                           )
                           if (confirmed) removeDocument.mutate(document.id)
                         }}
@@ -136,15 +200,15 @@ export function DocumentsPage() {
           </div>
         ) : (
           <EmptyState
-            title="No generated documents"
-            detail="Save a draft or final PDF from an agreement, booking, or invoice record."
+            title="No documents"
+            detail="Save a PDF from an agreement, booking, or invoice, or upload a local reference file."
           />
         )}
       </Panel>
       {previewId && (
         <Panel shadow>
           <div className="section-heading">
-            <h2>Saved PDF preview</h2>
+            <h2>Saved document preview</h2>
             <button className="button button--quiet" onClick={() => setPreviewId(null)}>
               Close
             </button>
@@ -155,8 +219,8 @@ export function DocumentsPage() {
             src={api.documentPreviewUrl(previewId)}
           />
           <p className="muted">
-            This is the stored historical PDF. It does not regenerate from current client or booking
-            data.
+            This is the stored file. Generated PDFs remain unchanged when current client or booking
+            data changes.
           </p>
         </Panel>
       )}

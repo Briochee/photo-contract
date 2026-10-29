@@ -1,4 +1,4 @@
-Version: 24
+Version: 25
 
 # Repository Guidelines
 
@@ -19,7 +19,7 @@ Use four spaces and type annotations in Python (`snake_case`, Ruff configured in
 
 Use strict TypeScript, functional React components, CSS Modules, TanStack Query for server state, and React Hook Form with Zod for forms. Keep API calls centralized in `frontend/src/services/api.ts`. `npm run desktop --prefix frontend` builds the UI, runs migrations, and launches Electron with its backend child. Do not add remote fonts, assets, telemetry, cloud services, or runtime network dependencies.
 
-Keep one Alembic baseline matching the current SQLite schema. Route desktop and development startup through `backend.app.migrations.upgrade_database`; recognized pre-squash revisions are backed up and reconciled before the baseline runs. Never discard the local database to recover from a migration error.
+Keep one Alembic baseline matching the current SQLite schema. Route desktop and development startup through `backend.app.migrations.upgrade_database`; create a verified SQLite backup before any forward migration and back up recognized pre-squash revisions before reconciling them. Never discard the local database to recover from a migration error.
 
 Photographer business name and profile-level rates, payment terms, delivery method, and delivery deadline are optional. Keep blank values nullable across the API, database, and settings form; booking-level data remains authoritative once saved.
 
@@ -32,6 +32,8 @@ Only unaccepted draft or pending bookings may be deleted. Delete their unpaid dr
 Settings may clear all local business records, profile/preferences, generated PDFs, imported legacy files, and logs only after explicit confirmation. Keep reference sequences to prevent reusing identifiers and never remove backups or original source files outside the configured data directory.
 
 The document library can delete a saved PDF and its library record while retaining the related client, booking, agreement, or invoice. Confirm permanent file removal. Draft invoices may be prepared and issued before acceptance evidence is recorded; issuing an invoice never marks contractual acceptance. Saved agreement and booking PDFs remain pending until written acceptance is recorded; previews remain drafts. Issued invoice snapshots are immutable and corrected through replacement revisions.
+
+The document library also stores photographer-owned reference uploads without a client association. Accept only signature-checked PDF, JPEG, and PNG files up to 25 MB; write uploads with generated filenames and private local file permissions, and serve only allowlisted types.
 
 Electron PDF previews use Chromium's local PDF viewer. Keep plugin support enabled for the app and permit popup windows only for blob URLs created by the local backend origin. Provide native edit context menus in the main window and PDF preview windows. Master agreement and booking confirmation PDFs contain AcroForm text inputs for signer details, typed signatures, and dates, plus certificate-based signature fields. Invoices do not require signatures. The app records acceptance evidence separately and does not verify identity from a filled PDF.
 

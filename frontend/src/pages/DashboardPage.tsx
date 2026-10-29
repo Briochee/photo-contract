@@ -120,7 +120,7 @@ export function DashboardPage() {
                 <Link to="/documents" className="quick-action">
                   <span>04</span>
                   <strong>Document library</strong>
-                  <small>Preview and download PDFs</small>
+                  <small>Manage PDFs and stored files</small>
                 </Link>
               </div>
             </Panel>

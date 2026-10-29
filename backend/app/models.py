@@ -315,8 +315,8 @@ class GeneratedDocument(TimestampMixin, Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     document_type: Mapped[str] = mapped_column(String(32), nullable=False)
-    client_id: Mapped[int] = mapped_column(
-        ForeignKey("clients.id", ondelete="RESTRICT"), nullable=False
+    client_id: Mapped[int | None] = mapped_column(
+        ForeignKey("clients.id", ondelete="RESTRICT"), nullable=True
     )
     booking_id: Mapped[int | None] = mapped_column(ForeignKey("bookings.id", ondelete="RESTRICT"))
     invoice_id: Mapped[int | None] = mapped_column(ForeignKey("invoices.id", ondelete="RESTRICT"))
@@ -328,7 +328,7 @@ class GeneratedDocument(TimestampMixin, Base):
     template_version: Mapped[str] = mapped_column(String(32), nullable=False)
     source_snapshot_json: Mapped[str] = mapped_column(Text, nullable=False)
 
-    client: Mapped[Client] = relationship()
+    client: Mapped[Client | None] = relationship()
     booking: Mapped[Booking | None] = relationship()
     invoice: Mapped[Invoice | None] = relationship()
 

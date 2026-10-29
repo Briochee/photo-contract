@@ -149,10 +149,10 @@ export type Agreement = {
 
 export type GeneratedDocument = {
   id: number
-  document_type: 'agreement' | 'booking_confirmation' | 'invoice'
+  document_type: 'agreement' | 'booking_confirmation' | 'invoice' | 'uploaded_file'
   name: string
-  client_id: number
-  client_name: string
+  client_id: number | null
+  client_name: string | null
   booking_id: number | null
   booking_reference: string | null
   invoice_id: number | null
@@ -163,6 +163,8 @@ export type GeneratedDocument = {
   created_at: string
   content_hash: string
   template_version: string
+  media_type?: string | null
+  size_bytes?: number | null
 }
 
 export type Profile = {

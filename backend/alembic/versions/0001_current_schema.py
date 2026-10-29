@@ -214,7 +214,7 @@ def _create_current_schema() -> None:
         "generated_documents",
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("document_type", sa.String(length=32), nullable=False),
-        sa.Column("client_id", sa.Integer(), nullable=False),
+        sa.Column("client_id", sa.Integer(), nullable=True),
         sa.Column("booking_id", sa.Integer(), nullable=True),
         sa.Column("invoice_id", sa.Integer(), nullable=True),
         sa.Column("reference", sa.String(length=40), nullable=False),
@@ -334,6 +334,13 @@ def upgrade() -> None:
     if not agreement_columns["effective_date"]["nullable"]:
         with op.batch_alter_table("master_agreements") as batch_op:
             batch_op.alter_column("effective_date", existing_type=sa.Date(), nullable=True)
+
+    document_columns = {
+        column["name"]: column for column in sa.inspect(bind).get_columns("generated_documents")
+    }
+    if not document_columns["client_id"]["nullable"]:
+        with op.batch_alter_table("generated_documents") as batch_op:
+            batch_op.alter_column("client_id", existing_type=sa.Integer(), nullable=True)
 
     op.execute("UPDATE master_agreements SET status = 'finalized' WHERE status = 'accepted'")
     op.execute(

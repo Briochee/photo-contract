@@ -132,6 +132,21 @@ export const api = {
       json('DELETE', { confirmation: 'CLEAR_ALL_DATA' }),
     ),
   documents: () => request<GeneratedDocument[]>('/api/documents'),
+  uploadDocument: (file: File) => {
+    const query = new URLSearchParams({ filename: file.name })
+    const extension = file.name.split('.').at(-1)?.toLowerCase()
+    const mediaType =
+      file.type ||
+      ({ pdf: 'application/pdf', jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png' }[
+        extension ?? ''
+      ] ??
+        'application/octet-stream')
+    return request<GeneratedDocument>(`/api/documents/upload?${query}`, {
+      method: 'POST',
+      headers: { 'Content-Type': mediaType },
+      body: file,
+    })
+  },
   deleteDocument: (id: number) => request<void>(`/api/documents/${id}`, json('DELETE')),
   previewDocument: async (value: DocumentRequest) => {
     const response = await fetch('/api/documents/preview', {

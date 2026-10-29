@@ -31,7 +31,7 @@ cd ..
 
 For tests and linting, also install `python -m pip install -r backend/dev-requirements.txt`. The Electron application does not install Streamlit or its legacy-only dependencies.
 
-To use a separate local data directory, copy `.env.example` to `.env` and set `PHOTO_STUDIO_DATA_DIR` to an absolute or repository-relative path. The default is `data/`; SQLite is `data/studio.sqlite3` and PDFs are in `data/documents/`. Keep this directory private.
+To use a separate local data directory, copy `.env.example` to `.env` and set `PHOTO_STUDIO_DATA_DIR` to an absolute or repository-relative path. The default is `data/`; SQLite is `data/studio.sqlite3` and generated PDFs plus uploaded PDF/JPG/PNG reference files are in `data/documents/`. Keep this directory private; reference files may contain tax identification or other sensitive information.
 
 ## Development
 
@@ -50,7 +50,7 @@ python scripts/migrate.py
 python -m uvicorn backend.app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-The repository keeps one Alembic baseline for the current schema. On first launch after this consolidation, databases stamped with the earlier `0001`–`0004` revisions are copied to `data/backups/` (or the configured data directory's `backups/` folder), then upgraded while preserving records. Unrecognized revisions stop startup without modifying the database.
+The repository keeps one Alembic baseline for the current schema and adds forward migrations for later data-model changes. Before any upgrade of an existing database, startup creates and integrity-checks a consistent SQLite backup in `data/backups/` (or the configured data directory's `backups/` folder). Databases stamped with the earlier `0001`–`0004` revisions are reconciled after backup while preserving records. Unrecognized revisions stop startup without modifying the database.
 
 ```bash
 cd frontend
@@ -132,7 +132,9 @@ python scripts/restore_backup.py backup.zip /path/to/restored-data
 
 Then set `PHOTO_STUDIO_DATA_DIR=/path/to/restored-data` in `.env` and restart. Backups contain personal and financial data; store them securely. The optional former Streamlit UI requires `legacy/requirements.txt` and `streamlit run app.py`.
 
-Settings also provides **Clear all history and data**. After confirmation, it removes business records, profile/preferences, the generated-document library, imported legacy files in the configured data directory, and current application logs. It retains reference counters to prevent reused identifiers. Downloaded backups and original source files outside the configured data directory are not affected.
+The Documents page accepts local PDF, JPG, and PNG reference files up to 25 MB. Uploaded files receive generated storage names and are kept in the configured document library; their original names appear in the UI. They are not attached to client, booking, or invoice records and are not processed by an external service.
+
+Settings also provides **Clear all history and data**. After confirmation, it removes business records, profile/preferences, the generated and uploaded document library, imported legacy files in the configured data directory, and current application logs. It retains reference counters to prevent reused identifiers. Downloaded backups and original source files outside the configured data directory are not affected.
 
 Master agreements move from draft to pending when their PDF is saved to the document library. The effective date remains empty until finalization; it is set to the date of the last signature. Finalize an agreement by uploading the signed PDF or recording that date with a reference (or the explicit `confirmed` override). Unsigned agreement PDFs show as pending signature. Uploaded signed PDFs are stored as separate immutable document versions.
 

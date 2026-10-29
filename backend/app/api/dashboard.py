@@ -27,7 +27,10 @@ def dashboard(session: Session = Depends(get_session)):
         select(Client).order_by(Client.created_at.desc()).limit(5)
     ).all()
     recent_documents = session.scalars(
-        select(GeneratedDocument).order_by(GeneratedDocument.created_at.desc()).limit(6)
+        select(GeneratedDocument)
+        .where(GeneratedDocument.document_type != "uploaded_file")
+        .order_by(GeneratedDocument.created_at.desc())
+        .limit(6)
     ).all()
     upcoming = [
         {
