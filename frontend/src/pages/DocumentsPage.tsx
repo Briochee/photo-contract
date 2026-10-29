@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
@@ -13,9 +13,20 @@ import { api } from '../services/api'
 import { dateLabel } from '../utils/format'
 
 export function DocumentsPage() {
+  const queryClient = useQueryClient()
   const documents = useQuery({ queryKey: ['documents'], queryFn: api.documents })
   const [previewId, setPreviewId] = useState<number | null>(null)
   const [kind, setKind] = useState('all')
+  const removeDocument = useMutation({
+    mutationFn: api.deleteDocument,
+    onSuccess: async (_, deletedId) => {
+      if (previewId === deletedId) setPreviewId(null)
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['documents'] }),
+        queryClient.invalidateQueries({ queryKey: ['dashboard'] }),
+      ])
+    },
+  })
   const rows =
     documents.data?.filter((document) => kind === 'all' || document.document_type === kind) ?? []
   return (
@@ -26,7 +37,11 @@ export function DocumentsPage() {
         description="Versioned agreements, booking confirmations, and invoices stored on this device."
       />
       <Panel>
-        <ErrorMessage error={documents.error} />
+        <ErrorMessage error={documents.error || removeDocument.error} />
+        <p className="muted">
+          Draft PDFs are working copies. Final PDFs were saved after written acceptance was recorded
+          or an invoice was issued. Deleting a PDF here does not change its source record.
+        </p>
         <div className="filter-row filter-row--single">
           <div className="field">
             <label htmlFor="document-type">Document type</label>
@@ -78,7 +93,7 @@ export function DocumentsPage() {
                     <td>v{document.version}</td>
                     <td>{dateLabel(document.created_at)}</td>
                     <td>
-                      <Status value={document.status} />
+                      <Status value={document.status === 'final' ? 'Final PDF' : 'Draft PDF'} />
                     </td>
                     <td className="action-cell">
                       <button
@@ -90,6 +105,20 @@ export function DocumentsPage() {
                       <a className="text-button" href={api.downloadUrl(document.id)}>
                         Download
                       </a>
+                      <button
+                        className="text-button text-button--danger"
+                        type="button"
+                        disabled={removeDocument.isPending}
+                        aria-label={`Delete ${document.name}`}
+                        onClick={() => {
+                          const confirmed = window.confirm(
+                            `Permanently delete ${document.name} and remove it from the document library? The related ${document.document_type.replaceAll('_', ' ')} record will remain.`,
+                          )
+                          if (confirmed) removeDocument.mutate(document.id)
+                        }}
+                      >
+                        Delete
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -99,7 +128,7 @@ export function DocumentsPage() {
         ) : (
           <EmptyState
             title="No generated documents"
-            detail="Generate a PDF from an agreement, booking, or invoice record."
+            detail="Save a draft or final PDF from an agreement, booking, or invoice record."
           />
         )}
       </Panel>

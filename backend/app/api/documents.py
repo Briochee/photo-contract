@@ -1,6 +1,8 @@
 """Document preview, versioned generation, metadata, and safe PDF downloads."""
 
+import os
 from pathlib import Path
+from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse, Response
@@ -9,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from backend.app.config import DEFAULT_OUTPUT_DIR
 from backend.app.database import get_session
+from backend.app.logging_config import activity
 from backend.app.models import GeneratedDocument
 from backend.app.schemas import DocumentRequest
 from backend.app.services.documents import document_context, generate_document, render_pdf
@@ -61,6 +64,49 @@ def get_document(document_id: int, session: Session = Depends(get_session)):
     if document is None:
         raise HTTPException(404, "Document not found")
     return _document_values(document)
+
+
+@router.delete("/{document_id}", status_code=204)
+def delete_document(document_id: int, session: Session = Depends(get_session)) -> Response:
+    """Remove one library record and its PDF while keeping the database and file consistent."""
+    document = session.get(GeneratedDocument, document_id)
+    if document is None:
+        raise HTTPException(404, "Document not found")
+    document_type = document.document_type
+
+    root = DEFAULT_OUTPUT_DIR.resolve()
+    path = Path(document.file_path).resolve()
+    if path.parent != root:
+        raise HTTPException(409, "The document file is outside the configured library")
+
+    tombstone = root / f".delete-{uuid4().hex}.tmp"
+    moved_file = False
+    try:
+        if path.exists():
+            if not path.is_file():
+                raise HTTPException(409, "The document file is not a regular file")
+            os.replace(path, tombstone)
+            moved_file = True
+        session.delete(document)
+        session.commit()
+    except HTTPException:
+        raise
+    except Exception as exc:
+        session.rollback()
+        if moved_file:
+            try:
+                os.replace(tombstone, path)
+            except OSError:
+                activity.error("document_delete_restore_failed id=%d", document_id)
+        raise HTTPException(503, "The document could not be deleted") from exc
+
+    if moved_file:
+        try:
+            tombstone.unlink(missing_ok=True)
+        except OSError:
+            activity.warning("document_delete_cleanup_failed id=%d", document_id)
+    activity.info("document_deleted id=%d type=%s", document_id, document_type)
+    return Response(status_code=204)
 
 
 @router.get("/{document_id}/preview")

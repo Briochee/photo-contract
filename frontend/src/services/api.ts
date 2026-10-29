@@ -122,6 +122,7 @@ export const api = {
   settings: () => request<Settings>('/api/settings'),
   updateSettings: (value: Profile) => request<Settings>('/api/settings', json('PATCH', value)),
   documents: () => request<GeneratedDocument[]>('/api/documents'),
+  deleteDocument: (id: number) => request<void>(`/api/documents/${id}`, json('DELETE')),
   previewDocument: async (value: DocumentRequest) => {
     const response = await fetch('/api/documents/preview', json('POST', value))
     if (!response.ok) {
