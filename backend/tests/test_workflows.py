@@ -227,6 +227,47 @@ def test_booking_invoice_payments_and_immutability(client) -> None:
     assert overpayment.status_code == 422
 
 
+def test_draft_booking_can_have_invoice_created_and_issued_without_acceptance(client) -> None:
+    _profile(client)
+    client_id = client.post("/api/clients", json={"legal_name": "Example Client"}).json()["id"]
+    booking = client.post("/api/bookings", json=_booking_payload(client_id)).json()
+    assert booking["status"] == "draft"
+
+    invoice_date = date(2026, 10, 29)
+    invoice_response = client.post(
+        "/api/invoices",
+        json={
+            "booking_id": booking["id"],
+            "invoice_date": invoice_date.isoformat(),
+            "due_date": (invoice_date + timedelta(days=15)).isoformat(),
+            "tax_mode": "none",
+            "tax_rate": "0",
+            "manual_tax": "0",
+            "notes": "",
+            "line_items": [
+                {
+                    "source_booking_line_item_id": booking["line_items"][0]["id"],
+                    "source_expense_id": None,
+                    "description": "Photography package",
+                    "quantity": "1",
+                    "unit": "package",
+                    "unit_rate": "800.00",
+                }
+            ],
+        },
+    )
+
+    assert invoice_response.status_code == 201, invoice_response.text
+    invoice = invoice_response.json()
+    assert invoice["record_status"] == "draft"
+    assert invoice["total_cents"] == booking["subtotal_cents"]
+
+    issued = client.post(f"/api/invoices/{invoice['id']}/issue")
+
+    assert issued.status_code == 200, issued.text
+    assert issued.json()["record_status"] == "issued"
+
+
 def test_proposed_expense_is_not_invoice_eligible(client) -> None:
     _profile(client)
     client_id = client.post("/api/clients", json={"legal_name": "Example LLC"}).json()["id"]

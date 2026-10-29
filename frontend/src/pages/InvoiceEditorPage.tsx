@@ -240,7 +240,7 @@ export function InvoiceEditorPage() {
         description={
           invoice
             ? `${invoice.client.legal_name} · ${invoice.booking_ref}`
-            : 'Import agreed charges from an accepted booking.'
+            : 'Prepare an invoice from a saved booking. You can create it before recording client acceptance.'
         }
         action={
           <Link className="button button--quiet" to="/invoices">
@@ -279,17 +279,19 @@ export function InvoiceEditorPage() {
               </div>
               <div className="form-grid">
                 <div className="field">
-                  <label htmlFor="booking_id">Accepted booking *</label>
+                  <label htmlFor="booking_id">Booking *</label>
                   <select id="booking_id" {...form.register('booking_id', { valueAsNumber: true })}>
                     <option value={0}>Select booking</option>
-                    {bookings.data
-                      ?.filter((item) => item.status === 'accepted')
-                      .map((item) => (
-                        <option key={item.id} value={item.id}>
-                          {item.booking_ref} · {item.event_name}
-                        </option>
-                      ))}
+                    {bookings.data?.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.booking_ref} · {item.event_name} · {item.status}
+                      </option>
+                    ))}
                   </select>
+                  <small className="field-hint">
+                    Draft invoices can be prepared and issued without a signature. Issuing the
+                    invoice does not record acceptance of the agreement or booking.
+                  </small>
                   {form.formState.errors.booking_id && (
                     <FieldError>{form.formState.errors.booking_id.message}</FieldError>
                   )}
@@ -476,10 +478,11 @@ export function InvoiceEditorPage() {
             </Panel>
             <div className="save-bar">
               <span className="muted">
-                A draft invoice is independent from the accepted booking. Issue locks its snapshot.
+                Save keeps this invoice editable. Issue locks its financial snapshot and saves a
+                final PDF; the source booking remains unchanged.
               </span>
               <button className="button button--primary" disabled={save.isPending || !booking}>
-                {save.isPending ? 'Saving…' : invoice ? 'Save invoice draft' : 'Save invoice draft'}
+                {save.isPending ? 'Saving…' : 'Save invoice draft'}
               </button>
             </div>
           </fieldset>
@@ -495,13 +498,22 @@ export function InvoiceEditorPage() {
             <div className="action-row">
               <PdfPreview request={{ document_type: 'invoice', entity_id: invoice.id }} />
               {invoice.record_status === 'draft' && (
-                <button
-                  className="button button--primary"
-                  disabled={issue.isPending}
-                  onClick={() => issue.mutate()}
-                >
-                  {issue.isPending ? 'Issuing…' : 'Issue invoice and save PDF'}
-                </button>
+                <>
+                  <button
+                    className="button"
+                    disabled={generated.isPending}
+                    onClick={() => generated.mutate()}
+                  >
+                    {generated.isPending ? 'Saving…' : 'Save draft PDF'}
+                  </button>
+                  <button
+                    className="button button--primary"
+                    disabled={issue.isPending}
+                    onClick={() => issue.mutate()}
+                  >
+                    {issue.isPending ? 'Issuing…' : 'Issue invoice · save final PDF'}
+                  </button>
+                </>
               )}
               {invoice.record_status === 'issued' && (
                 <button
@@ -509,14 +521,29 @@ export function InvoiceEditorPage() {
                   disabled={generated.isPending}
                   onClick={() => generated.mutate()}
                 >
-                  {generated.isPending ? 'Generating…' : 'Save another PDF version'}
+                  {generated.isPending
+                    ? 'Generating…'
+                    : lastGeneratedName.startsWith(
+                          'Invoice issued; PDF generation needs attention:',
+                        )
+                      ? 'Retry final PDF save'
+                      : 'Save another final PDF version'}
                 </button>
               )}
             </div>
             <p className="muted">
-              Save changes before previewing; preview uses the latest saved draft. Final PDFs are
-              versioned and never overwritten.
+              Save changes before previewing. Draft PDFs are review copies. Issuing freezes the
+              invoice snapshot and creates a final PDF; it does not record acceptance of the
+              booking. Corrections use a replacement revision so the original remains in the
+              history.
             </p>
+            {invoice.record_status === 'issued' && (
+              <p className="inline-note">
+                This invoice is locked. If no payment has been recorded, create a replacement
+                revision to edit its charges; the original PDF stays in Documents. Adjustments to
+                invoices with payments are not automated.
+              </p>
+            )}
             {lastGeneratedName && <p role="status">{lastGeneratedName}</p>}
             {invoice.record_status === 'issued' && invoice.is_current && (
               <div className="payment-panel">

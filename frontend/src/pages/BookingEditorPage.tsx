@@ -728,8 +728,9 @@ export function BookingEditorPage() {
             {booking.status === 'draft' && (
               <div className="acceptance-controls">
                 <p className="inline-note">
-                  Record written acceptance evidence here. The application does not obtain or verify
-                  client consent.
+                  You can save the booking confirmation and prepare an invoice before acceptance.
+                  Record this date and reference only after the client replies in writing; it can be
+                  an email thread or signed-copy location.
                 </p>
                 <div className="field">
                   <label htmlFor="accepted-date">Written acceptance date</label>
@@ -767,9 +768,21 @@ export function BookingEditorPage() {
                 disabled={generate.isPending}
                 onClick={() => generate.mutate()}
               >
-                {generate.isPending ? 'Generating…' : 'Save PDF version'}
+                {generate.isPending
+                  ? 'Generating…'
+                  : booking.status === 'accepted'
+                    ? 'Save final PDF version'
+                    : 'Save draft PDF'}
               </button>
+              <Link className="button" to={`/invoices/new?booking=${booking.id}`}>
+                Create invoice draft
+              </Link>
             </div>
+            <p className="muted">
+              Preview is temporary. Saving stores a version in Documents: draft until written
+              acceptance is recorded, then final. Saving or issuing a document does not send email
+              or collect a signature.
+            </p>
             {generate.data && (
               <p role="status">
                 Saved {generate.data.name}. <Link to="/documents">Open document library</Link>

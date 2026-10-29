@@ -35,6 +35,7 @@ def list_invoices(session: Session = Depends(get_session)):
 
 @router.post("", status_code=201)
 def create_invoice(payload: InvoiceInput, session: Session = Depends(get_session)):
+    """Create an editable invoice draft from a saved booking, whether accepted or still draft."""
     booking = session.scalar(
         select(Booking)
         .options(
@@ -46,8 +47,6 @@ def create_invoice(payload: InvoiceInput, session: Session = Depends(get_session
     )
     if booking is None:
         raise HTTPException(404, "Booking not found")
-    if booking.status != "accepted":
-        raise HTTPException(409, "Accept the booking before creating an invoice")
     if payload.due_date < payload.invoice_date:
         raise HTTPException(422, "The due date cannot be before the invoice date")
     expected_due = date.fromisoformat(

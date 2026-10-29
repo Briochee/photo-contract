@@ -90,6 +90,7 @@ export function ClientDetailPage() {
       </>
     )
   const record = client.data
+  const selectedAgreement = record.agreements.find((item) => item.id === agreementId)
   return (
     <>
       <PageHeader
@@ -275,33 +276,43 @@ export function ClientDetailPage() {
             </button>
             {agreementId && (
               <>
-                <div className="acceptance-fields">
-                  <div className="field">
-                    <label htmlFor="accepted-date">Written acceptance date</label>
-                    <input
-                      id="accepted-date"
-                      type="date"
-                      value={acceptedDate}
-                      onChange={(event) => setAcceptedDate(event.target.value)}
-                    />
+                {selectedAgreement?.status === 'draft' ? (
+                  <div className="acceptance-fields">
+                    <div className="field">
+                      <label htmlFor="accepted-date">Client acceptance date</label>
+                      <input
+                        id="accepted-date"
+                        type="date"
+                        value={acceptedDate}
+                        onChange={(event) => setAcceptedDate(event.target.value)}
+                      />
+                    </div>
+                    <div className="field">
+                      <label htmlFor="acceptance-ref">Client acceptance evidence</label>
+                      <input
+                        id="acceptance-ref"
+                        value={acceptanceReference}
+                        onChange={(event) => setAcceptanceReference(event.target.value)}
+                        placeholder="Client reply email or signed copy location"
+                      />
+                      <small className="field-hint">
+                        Record the client’s written yes, not the email you sent with the documents.
+                      </small>
+                    </div>
+                    <button
+                      className="button"
+                      disabled={acceptAgreement.isPending || !acceptanceReference.trim()}
+                      onClick={() => acceptAgreement.mutate()}
+                    >
+                      Record written acceptance
+                    </button>
                   </div>
-                  <div className="field">
-                    <label htmlFor="acceptance-ref">Acceptance evidence reference</label>
-                    <input
-                      id="acceptance-ref"
-                      value={acceptanceReference}
-                      onChange={(event) => setAcceptanceReference(event.target.value)}
-                      placeholder="Email or signed copy location"
-                    />
-                  </div>
-                  <button
-                    className="button"
-                    disabled={acceptAgreement.isPending || !acceptanceReference.trim()}
-                    onClick={() => acceptAgreement.mutate()}
-                  >
-                    Record written acceptance
-                  </button>
-                </div>
+                ) : (
+                  <p className="inline-note">
+                    Written acceptance is recorded. Generate a final PDF version below. You can
+                    prepare the booking confirmation and invoice before this step.
+                  </p>
+                )}
                 <div className="action-row">
                   <PdfPreview request={{ document_type: 'agreement', entity_id: agreementId }} />
                   <button
@@ -309,9 +320,19 @@ export function ClientDetailPage() {
                     onClick={() => generate.mutate()}
                     disabled={generate.isPending}
                   >
-                    {generate.isPending ? 'Generating…' : 'Generate PDF version'}
+                    {generate.isPending
+                      ? 'Saving…'
+                      : selectedAgreement?.status === 'accepted'
+                        ? 'Save final PDF version'
+                        : 'Save draft PDF'}
                   </button>
                 </div>
+                {selectedAgreement?.status === 'draft' && (
+                  <p className="muted">
+                    A draft PDF is for review and can be prepared now. The agreement becomes
+                    accepted only after you record the client’s written acceptance evidence.
+                  </p>
+                )}
                 {generate.data && (
                   <p role="status">Saved {generate.data.name} in the document library.</p>
                 )}
