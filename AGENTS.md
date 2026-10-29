@@ -1,4 +1,4 @@
-Version: 8
+Version: 9
 
 # Repository Guidelines
 
@@ -24,6 +24,10 @@ Photographer business name and profile-level rates, payment terms, delivery meth
 Bookings support any photography session or event. Keep event types free-form, with suggestions for personal, wedding, portrait, celebration, and corporate work. Place field help below controls and align labels so helper text does not shift form inputs.
 
 Client detail pages may delete an agreement only when no booking references it. Keep generated PDF copies in the document library after deleting the agreement record.
+
+The document library can delete a saved PDF and its library record while retaining the related client, booking, agreement, or invoice. Confirm permanent file removal. Draft invoices may be prepared and issued before acceptance evidence is recorded; issuing an invoice never marks contractual acceptance. Agreement and booking PDFs remain drafts until written acceptance is recorded, while issued invoice snapshots are immutable and corrected through replacement revisions.
+
+Electron PDF previews use Chromium's local PDF viewer. Keep plugin support enabled for the app and permit popup windows only for blob URLs created by the local backend origin.
 
 ## Verification and Change Review
 
