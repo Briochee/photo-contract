@@ -1,6 +1,7 @@
 """Controlled master-agreement records based on the supplied legal source."""
 
 import hashlib
+import json
 from datetime import UTC, datetime, time
 
 from fastapi import APIRouter, Depends, HTTPException, Response
@@ -49,13 +50,12 @@ def create_agreement(payload: AgreementInput, session: Session = Depends(get_ses
     if payload.accepted and (
         payload.accepted_date is None or not payload.acceptance_reference.strip()
     ):
-        raise HTTPException(422, "Record the written acceptance date and its reference")
-    if (
-        payload.accepted
-        and payload.accepted_date
-        and payload.accepted_date < payload.effective_date
-    ):
-        raise HTTPException(422, "Acceptance date cannot precede the agreement effective date")
+        raise HTTPException(422, "Record the last signature date and its evidence reference")
+    agreement_date = (
+        payload.accepted_date
+        if payload.accepted and payload.accepted_date is not None
+        else payload.effective_date
+    )
     legal = agreement_text()
     digest = hashlib.sha256(legal.encode("utf-8")).hexdigest()
     profile = session.scalar(select(PhotographerProfile).order_by(PhotographerProfile.id).limit(1))
@@ -65,10 +65,10 @@ def create_agreement(payload: AgreementInput, session: Session = Depends(get_ses
         session.rollback()
         with session.begin():
             agreement = MasterAgreement(
-                agreement_ref=allocate_reference(session, "agreement", payload.effective_date.year),
+                agreement_ref=allocate_reference(session, "agreement", agreement_date.year),
                 client_id=client.id,
                 photographer_profile_id=profile.id,
-                effective_date=payload.effective_date,
+                effective_date=agreement_date,
                 status="accepted" if payload.accepted else "draft",
                 template_version=TEMPLATE_VERSION,
                 legal_text_hash=digest,
@@ -77,7 +77,7 @@ def create_agreement(payload: AgreementInput, session: Session = Depends(get_ses
                     {
                         "client": client_values(client),
                         "photographer": profile_values(profile),
-                        "effective_date": payload.effective_date.isoformat(),
+                        "effective_date": agreement_date.isoformat(),
                     }
                 )[0],
                 accepted_at=(
@@ -136,11 +136,13 @@ def accept_agreement(
         raise HTTPException(404, "Agreement not found")
     if agreement.status != "draft":
         raise HTTPException(409, "Only draft agreements can be marked accepted")
-    if payload.accepted_date < agreement.effective_date:
-        raise HTTPException(422, "Acceptance date cannot precede the agreement effective date")
     agreement.status = "accepted"
+    agreement.effective_date = payload.accepted_date
     agreement.accepted_at = datetime.combine(payload.accepted_date, time.min, tzinfo=UTC)
     agreement.acceptance_reference = payload.acceptance_reference.strip()
+    source = json.loads(agreement.source_snapshot_json)
+    source["effective_date"] = payload.accepted_date.isoformat()
+    agreement.source_snapshot_json, _ = snapshot(source)
     session.commit()
     return _agreement_values(agreement)
 

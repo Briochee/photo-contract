@@ -70,7 +70,11 @@ def booking_values(booking: Booking) -> dict[str, Any]:
         "client_id": booking.client_id,
         "client": client_values(booking.client),
         "agreement_id": booking.agreement_id,
-        "agreement_date": _date(booking.agreement.effective_date)
+        "agreement_date": (
+            _date(booking.agreement.effective_date)
+            if booking.agreement.status == "accepted"
+            else None
+        )
         if booking.agreement
         else booking.agreement_date_snapshot,
         "event_name": booking.event_name,

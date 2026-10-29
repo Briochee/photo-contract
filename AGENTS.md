@@ -1,4 +1,4 @@
-Version: 9
+Version: 10
 
 # Repository Guidelines
 
@@ -28,6 +28,8 @@ Client detail pages may delete an agreement only when no booking references it. 
 The document library can delete a saved PDF and its library record while retaining the related client, booking, agreement, or invoice. Confirm permanent file removal. Draft invoices may be prepared and issued before acceptance evidence is recorded; issuing an invoice never marks contractual acceptance. Agreement and booking PDFs remain drafts until written acceptance is recorded, while issued invoice snapshots are immutable and corrected through replacement revisions.
 
 Electron PDF previews use Chromium's local PDF viewer. Keep plugin support enabled for the app and permit popup windows only for blob URLs created by the local backend origin.
+
+The master agreement takes effect on the date of the last signature. Draft creation dates are internal only; expose the agreement date after written acceptance is recorded, and preserve prior agreement text snapshots when the legal template version changes.
 
 ## Verification and Change Review
 

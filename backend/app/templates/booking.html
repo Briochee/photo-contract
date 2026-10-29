@@ -2,7 +2,7 @@
 {% block content %}
 <div class="eyebrow">Photography services · Booking confirmation</div>
 <h1>Booking Confirmation</h1>
-<div class="document-meta"><span>{{ reference }}</span><span>Governing agreement {{ agreement_date or "To be confirmed" }}</span><span class="status">{{ status_label }}</span></div>
+<div class="document-meta"><span>{{ reference }}</span><span>{% if agreement_ref %}Governing agreement {{ agreement_ref }}{% if agreement_date %} · signed {{ agreement_date }}{% endif %}{% elif agreement_date %}Governing agreement signed {{ agreement_date }}{% else %}No governing agreement selected{% endif %}</span><span class="status">{{ status_label }}</span></div>
 <section class="two-column">
   <div><h2>Client</h2><p><strong>{{ client.legal_name }}</strong><br>{{ client.primary_contact_name }}{% if client.primary_contact_title %}, {{ client.primary_contact_title }}{% endif %}<br>{{ client.contact_email }}<br>{{ client.mailing_address }}</p></div>
   <div><h2>Photographer</h2><p><strong>{{ photographer.legal_name or photographer.business_name }}</strong><br>{{ photographer.mailing_address }}<br>{{ photographer.email }} · {{ photographer.phone }}</p></div>

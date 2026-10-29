@@ -2,8 +2,6 @@
 
 **Draft for review — New York law.** This template is not legal advice. Have New York counsel review before signature, especially the cancellation, equipment-damage, and liability provisions.
 
-**Effective Date:** [Date]
-
 **Photographer:** [Legal name / business name]  
 **Address:** [Address]  
 **Email:** [Email]
@@ -186,6 +184,7 @@ The Photographer and Client are each a “Party” and together the “Parties.�
 ## 16. Signatures
 
 By signing, the Parties agree to this Master Photography Services Agreement.
+This Agreement takes effect on the date of the last signature below.
 
 **Photographer**  
 Legal Name: ______________________________  

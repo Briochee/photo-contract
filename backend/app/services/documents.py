@@ -77,7 +77,6 @@ def document_context(
             "reference": agreement.agreement_ref,
             "photographer_name": _person_name(source["photographer"]),
             "client_name": source["client"]["legal_name"],
-            "effective_date": agreement.effective_date.isoformat(),
             "template_version": agreement.template_version,
             "status_label": "Accepted agreement"
             if agreement.status == "accepted"
@@ -101,6 +100,12 @@ def document_context(
                 select(PhotographerProfile).order_by(PhotographerProfile.id).limit(1)
             )
             photographer = profile_values(profile)
+        if booking.agreement:
+            data["agreement_date"] = (
+                booking.agreement.effective_date.isoformat()
+                if booking.agreement.status == "accepted"
+                else None
+            )
         approved = [
             item
             for item in data["additional_expenses"]
@@ -116,6 +121,7 @@ def document_context(
             "document_type": "booking",
             "reference": data["booking_ref"],
             "booking_ref": data["booking_ref"],
+            "agreement_ref": booking.agreement.agreement_ref if booking.agreement else "",
             "photographer_name": _person_name(photographer),
             "photographer": photographer,
             "client_name": data["client"]["legal_name"],
@@ -280,7 +286,7 @@ def generate_document(
             status="final" if entity_status in {"accepted", "issued"} else "draft",
             file_path=str(destination),
             content_hash=hashlib.sha256(content).hexdigest(),
-            template_version=TEMPLATE_VERSION,
+            template_version=str(context.get("template_version", TEMPLATE_VERSION)),
             source_snapshot_json=source_json,
         )
         session.add(document)

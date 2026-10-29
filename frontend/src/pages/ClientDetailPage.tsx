@@ -24,8 +24,7 @@ export function ClientDetailPage() {
   const clientId = Number(useParams().clientId)
   const queryClient = useQueryClient()
   const [editing, setEditing] = useState(false)
-  const [effectiveDate, setEffectiveDate] = useState(todayIso())
-  const [acceptedDate, setAcceptedDate] = useState(todayIso())
+  const [lastSignatureDate, setLastSignatureDate] = useState(todayIso())
   const [acceptanceReference, setAcceptanceReference] = useState('')
   const [agreementId, setAgreementId] = useState<number | null>(null)
   const client = useQuery({
@@ -52,7 +51,7 @@ export function ClientDetailPage() {
   })
   const createAgreement = useMutation({
     mutationFn: () =>
-      api.createAgreement({ client_id: clientId, effective_date: effectiveDate, accepted: false }),
+      api.createAgreement({ client_id: clientId, effective_date: todayIso(), accepted: false }),
     onSuccess: async (agreement) => {
       setAgreementId(agreement.id)
       await refresh()
@@ -61,7 +60,7 @@ export function ClientDetailPage() {
   const acceptAgreement = useMutation({
     mutationFn: () =>
       api.acceptAgreement(agreementId!, {
-        accepted_date: acceptedDate,
+        accepted_date: lastSignatureDate,
         acceptance_reference: acceptanceReference,
       }),
     onSuccess: refresh,
@@ -193,7 +192,7 @@ export function ClientDetailPage() {
         <Panel>
           <div className="section-heading">
             <h2>Master agreements</h2>
-            <span className="muted">Controlled legal template · v1.0.0</span>
+            <span className="muted">Controlled legal template</span>
           </div>
           {!record.agreements.length ? (
             <p className="muted">
@@ -205,7 +204,7 @@ export function ClientDetailPage() {
                 <thead>
                   <tr>
                     <th>Reference</th>
-                    <th>Effective</th>
+                    <th>Agreement date</th>
                     <th>Status</th>
                     <th>Template</th>
                     <th>Actions</th>
@@ -215,7 +214,11 @@ export function ClientDetailPage() {
                   {record.agreements.map((agreement) => (
                     <tr key={agreement.id}>
                       <td>{agreement.agreement_ref}</td>
-                      <td>{dateLabel(agreement.effective_date)}</td>
+                      <td>
+                        {agreement.status === 'accepted'
+                          ? dateLabel(agreement.effective_date)
+                          : 'Pending signature'}
+                      </td>
                       <td>
                         <Status value={agreement.status} />
                       </td>
@@ -258,15 +261,6 @@ export function ClientDetailPage() {
             </div>
           )}
           <div className="agreement-actions">
-            <div className="field">
-              <label htmlFor="effective-date">Effective date</label>
-              <input
-                id="effective-date"
-                type="date"
-                value={effectiveDate}
-                onChange={(event) => setEffectiveDate(event.target.value)}
-              />
-            </div>
             <button
               className="button"
               disabled={createAgreement.isPending}
@@ -279,24 +273,27 @@ export function ClientDetailPage() {
                 {selectedAgreement?.status === 'draft' ? (
                   <div className="acceptance-fields">
                     <div className="field">
-                      <label htmlFor="accepted-date">Client acceptance date</label>
+                      <label htmlFor="last-signature-date">Date of last signature</label>
                       <input
-                        id="accepted-date"
+                        id="last-signature-date"
                         type="date"
-                        value={acceptedDate}
-                        onChange={(event) => setAcceptedDate(event.target.value)}
+                        value={lastSignatureDate}
+                        onChange={(event) => setLastSignatureDate(event.target.value)}
                       />
+                      <small className="field-hint">
+                        This date becomes the agreement’s effective date.
+                      </small>
                     </div>
                     <div className="field">
-                      <label htmlFor="acceptance-ref">Client acceptance evidence</label>
+                      <label htmlFor="acceptance-ref">Signed agreement evidence</label>
                       <input
                         id="acceptance-ref"
                         value={acceptanceReference}
                         onChange={(event) => setAcceptanceReference(event.target.value)}
-                        placeholder="Client reply email or signed copy location"
+                        placeholder="Signed copy location or email record"
                       />
                       <small className="field-hint">
-                        Record the client’s written yes, not the email you sent with the documents.
+                        Record where the signed agreement is stored.
                       </small>
                     </div>
                     <button
@@ -304,7 +301,7 @@ export function ClientDetailPage() {
                       disabled={acceptAgreement.isPending || !acceptanceReference.trim()}
                       onClick={() => acceptAgreement.mutate()}
                     >
-                      Record written acceptance
+                      Record signed agreement
                     </button>
                   </div>
                 ) : (
@@ -340,8 +337,8 @@ export function ClientDetailPage() {
             )}
           </div>
           <p className="inline-note">
-            This records acceptance evidence entered by the user. It does not obtain or verify a
-            signature.
+            The agreement takes effect on the date of the last signature. The app records the date
+            and evidence reference you enter; it does not capture or verify signatures.
           </p>
         </Panel>
         <Panel>

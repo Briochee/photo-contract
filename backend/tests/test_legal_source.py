@@ -14,6 +14,8 @@ def test_agreement_source_is_preserved_and_separated_from_other_material() -> No
     assert all(f"## {section}." in actual for section in range(1, 17))
     assert "BOOKING CONFIRMATION — SEPARATE PAGE" not in actual
     assert "Internal checklist" not in actual
+    assert "**Effective Date:**" not in actual
+    assert "This Agreement takes effect on the date of the last signature below." in actual
 
 
 def test_agreement_header_aliases_populate_party_fields() -> None:
@@ -122,6 +124,7 @@ def test_master_agreement_preview_uses_saved_client_and_photographer_fields(
     assert "[Address]" not in legal_html
     assert "[Email]" not in legal_html
     assert "[object Object]" not in rendered_html["html"]
+    assert "Effective Date" not in rendered_html["html"]
 
 
 def test_booking_confirmation_preview_renders_reference_and_event_fields(
@@ -142,11 +145,24 @@ def test_booking_confirmation_preview_renders_reference_and_event_fields(
     assert profile.status_code == 200
     client_record = client.post("/api/clients", json={"legal_name": "Jordan Lee"})
     assert client_record.status_code == 201
+    agreement = client.post(
+        "/api/agreements",
+        json={"client_id": client_record.json()["id"], "effective_date": "2026-10-29"},
+    )
+    assert agreement.status_code == 201
+    signed = client.post(
+        f"/api/agreements/{agreement.json()['id']}/accept",
+        json={
+            "accepted_date": "2026-11-02",
+            "acceptance_reference": "Signed agreement copy",
+        },
+    )
+    assert signed.status_code == 200
     booking = client.post(
         "/api/bookings",
         json={
             "client_id": client_record.json()["id"],
-            "agreement_id": None,
+            "agreement_id": agreement.json()["id"],
             "event_name": "Wedding portraits",
             "event_type": "Wedding",
             "event_date": "2026-11-20",
@@ -176,6 +192,7 @@ def test_booking_confirmation_preview_renders_reference_and_event_fields(
         },
     )
     assert booking.status_code == 201
+    assert booking.json()["agreement_date"] == "2026-11-02"
 
     preview = client.post(
         "/api/documents/preview",
@@ -185,6 +202,7 @@ def test_booking_confirmation_preview_renders_reference_and_event_fields(
     assert preview.status_code == 200
     assert preview.headers["content-type"] == "application/pdf"
     assert "BK-2026-001" in rendered_html["html"]
+    assert "Governing agreement AGR-2026-001 · signed 2026-11-02" in rendered_html["html"]
     assert "Wedding portraits" in rendered_html["html"]
     assert "Riverside Garden" in rendered_html["html"]
     assert "[object Object]" not in rendered_html["html"]
