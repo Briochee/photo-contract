@@ -276,7 +276,7 @@ def main() -> int:
         "PyInstaller",
         "--noconfirm",
         "--clean",
-        "--onefile",
+        "--onedir",
         "--name",
         "photography-document-studio-backend",
         "--distpath",

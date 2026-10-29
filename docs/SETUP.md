@@ -67,7 +67,7 @@ This builds the React UI, opens the Contract Studio loading window immediately, 
 
 ## Build a Finder-Installable macOS App
 
-Build on the Mac and CPU architecture where the app will run. The build bundles the Python backend, the installed Chromium headless runtime for PDF generation, frontend, templates, and legal source; the installed app does not need Python, Node.js, or a separate server.
+Build on the Mac and CPU architecture where the app will run. The build bundles the Python backend in PyInstaller onedir mode, the installed Chromium headless runtime for PDF generation, frontend, templates, and legal source; the installed app does not need Python, Node.js, or a separate server. Keep the backend in onedir mode because onefile's semaphore bootstrap is blocked in the macOS launch environment.
 
 Install build-time dependencies once from the repository root:
 

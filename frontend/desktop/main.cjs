@@ -13,6 +13,7 @@ const BACKEND_EXECUTABLE = path.join(
   process.resourcesPath,
   'backend',
   'photography-document-studio-backend',
+  'photography-document-studio-backend',
 )
 const STARTUP_PAGE = path.join(__dirname, 'loading.html')
 const STARTUP_PAGE_URL = pathToFileURL(STARTUP_PAGE).href
@@ -21,6 +22,7 @@ const COMPATIBLE_USER_DATA_DIRECTORY = 'Photography Document Studio'
 let backendProcess
 let mainWindow
 let backendOrigin
+let backendOutputTail = ''
 let quitAfterBackendStops = false
 let shutdownStarted = false
 
@@ -228,6 +230,7 @@ function launchBackend(port) {
 }
 
 function writeBackendOutput(chunk) {
+  backendOutputTail = `${backendOutputTail}${chunk.toString()}`.slice(-4_000)
   if (process.env.PHOTO_STUDIO_ELECTRON_DEBUG === '1') {
     process.stdout.write(`[backend] ${chunk.toString()}`)
   }
@@ -306,11 +309,15 @@ function waitForBackend(child, origin) {
 async function showStartupError(error) {
   console.error(error)
   if (backendProcess && backendProcess.exitCode === null) await stopBackend()
+  const backendDetails = backendOutputTail.trim()
+  const startupDetails = backendDetails
+    ? `${error.message}\n\nBackend startup output:\n${backendDetails}`
+    : error.message
   dialog.showErrorBox(
     'Could not start Contract Studio',
     app.isPackaged
-      ? `${error.message}\n\nTry reinstalling the application. Your saved data is kept separately on this Mac.`
-      : `${error.message}\n\nConfirm that the project Python environment is installed. See docs/SETUP.md for setup instructions.`,
+      ? `${startupDetails}\n\nTry reinstalling the application. Your saved data is kept separately on this Mac.`
+      : `${startupDetails}\n\nConfirm that the project Python environment is installed. See docs/SETUP.md for setup instructions.`,
   )
   app.quit()
 }
