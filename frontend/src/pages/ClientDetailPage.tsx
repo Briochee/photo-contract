@@ -72,6 +72,18 @@ export function ClientDetailPage() {
       await refresh()
     },
   })
+  const deleteBooking = useMutation({
+    mutationFn: (id: number) => api.deleteBooking(id),
+    onSuccess: async () => {
+      await Promise.all([
+        refresh(),
+        queryClient.invalidateQueries({ queryKey: ['bookings'] }),
+        queryClient.invalidateQueries({ queryKey: ['dashboard'] }),
+        queryClient.invalidateQueries({ queryKey: ['documents'] }),
+        queryClient.invalidateQueries({ queryKey: ['invoices'] }),
+      ])
+    },
+  })
   const generate = useMutation({
     mutationFn: () => api.generateDocument({ document_type: 'agreement', entity_id: agreementId! }),
     onSuccess: async () => {
@@ -109,6 +121,7 @@ export function ClientDetailPage() {
             createAgreement.error ||
             acceptAgreement.error ||
             deleteAgreement.error ||
+            deleteBooking.error ||
             generate.error
           }
         />
@@ -191,8 +204,8 @@ export function ClientDetailPage() {
         </Panel>
         <Panel>
           <div className="section-heading">
-            <h2>Master agreements</h2>
-            <span className="muted">Controlled legal template</span>
+            <h2>Contracts</h2>
+            <span className="muted">Master agreements · controlled legal template</span>
           </div>
           {!record.agreements.length ? (
             <p className="muted">
@@ -224,35 +237,37 @@ export function ClientDetailPage() {
                       </td>
                       <td>{agreement.template_version}</td>
                       <td>
-                        <button
-                          className="text-button"
-                          type="button"
-                          onClick={() => setAgreementId(agreement.id)}
-                        >
-                          Select
-                        </button>
-                        <button
-                          className="text-button text-button--danger"
-                          type="button"
-                          disabled={
-                            deleteAgreement.isPending ||
-                            record.bookings.some((booking) => booking.agreement_id === agreement.id)
-                          }
-                          title={
-                            record.bookings.some((booking) => booking.agreement_id === agreement.id)
-                              ? 'This agreement is linked to a booking.'
-                              : undefined
-                          }
-                          aria-label={`Delete agreement ${agreement.agreement_ref}`}
-                          onClick={() => {
-                            const confirmed = window.confirm(
-                              `Delete ${agreement.agreement_ref}? This removes the saved agreement and its acceptance record. Any generated PDF copies remain in Documents.`,
-                            )
-                            if (confirmed) deleteAgreement.mutate(agreement.id)
-                          }}
-                        >
-                          Delete
-                        </button>
+                        <div className="table-actions">
+                          <button
+                            className="text-button"
+                            type="button"
+                            onClick={() => setAgreementId(agreement.id)}
+                          >
+                            Select
+                          </button>
+                          <button
+                            className="text-button text-button--danger"
+                            type="button"
+                            disabled={
+                              deleteAgreement.isPending ||
+                              record.bookings.some((booking) => booking.agreement_id === agreement.id)
+                            }
+                            title={
+                              record.bookings.some((booking) => booking.agreement_id === agreement.id)
+                                ? 'This agreement is linked to a booking.'
+                                : undefined
+                            }
+                            aria-label={`Delete agreement ${agreement.agreement_ref}`}
+                            onClick={() => {
+                              const confirmed = window.confirm(
+                                `Delete ${agreement.agreement_ref}? This removes the saved agreement and its acceptance record. Any generated PDF copies remain in Documents.`,
+                              )
+                              if (confirmed) deleteAgreement.mutate(agreement.id)
+                            }}
+                          >
+                            Delete
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -261,57 +276,20 @@ export function ClientDetailPage() {
             </div>
           )}
           <div className="agreement-actions">
-            <button
-              className="button"
-              disabled={createAgreement.isPending}
-              onClick={() => createAgreement.mutate()}
-            >
-              Create draft agreement
-            </button>
-            {agreementId && (
-              <>
-                {selectedAgreement?.status === 'draft' ? (
-                  <div className="acceptance-fields">
-                    <div className="field">
-                      <label htmlFor="last-signature-date">Date of last signature</label>
-                      <input
-                        id="last-signature-date"
-                        type="date"
-                        value={lastSignatureDate}
-                        onChange={(event) => setLastSignatureDate(event.target.value)}
-                      />
-                      <small className="field-hint">
-                        This date becomes the agreement’s effective date.
-                      </small>
-                    </div>
-                    <div className="field">
-                      <label htmlFor="acceptance-ref">Signed agreement evidence</label>
-                      <input
-                        id="acceptance-ref"
-                        value={acceptanceReference}
-                        onChange={(event) => setAcceptanceReference(event.target.value)}
-                        placeholder="Signed copy location or email record"
-                      />
-                      <small className="field-hint">
-                        Record where the signed agreement is stored.
-                      </small>
-                    </div>
-                    <button
-                      className="button"
-                      disabled={acceptAgreement.isPending || !acceptanceReference.trim()}
-                      onClick={() => acceptAgreement.mutate()}
-                    >
-                      Record signed agreement
-                    </button>
-                  </div>
-                ) : (
-                  <p className="inline-note">
-                    Written acceptance is recorded. Generate a final PDF version below. You can
-                    prepare the booking confirmation and invoice before this step.
-                  </p>
-                )}
-                <div className="action-row">
-                  <PdfPreview request={{ document_type: 'agreement', entity_id: agreementId }} />
+            {selectedAgreement ? (
+              <PdfPreview
+                key={selectedAgreement.id}
+                request={{ document_type: 'agreement', entity_id: selectedAgreement.id }}
+                leadingAction={
+                  <button
+                    className="button"
+                    disabled={createAgreement.isPending}
+                    onClick={() => createAgreement.mutate()}
+                  >
+                    Create draft agreement
+                  </button>
+                }
+                trailingAction={
                   <button
                     className="button button--primary"
                     onClick={() => generate.mutate()}
@@ -319,21 +297,74 @@ export function ClientDetailPage() {
                   >
                     {generate.isPending
                       ? 'Saving…'
-                      : selectedAgreement?.status === 'accepted'
+                      : selectedAgreement.status === 'accepted'
                         ? 'Save final PDF version'
                         : 'Save draft PDF'}
                   </button>
+                }
+              />
+            ) : (
+              <div className="agreement-action-row">
+                <button
+                  className="button"
+                  disabled={createAgreement.isPending}
+                  onClick={() => createAgreement.mutate()}
+                >
+                  Create draft agreement
+                </button>
+              </div>
+            )}
+            {selectedAgreement?.status === 'draft' && (
+              <>
+                <div className="acceptance-fields">
+                  <div className="field">
+                    <label htmlFor="last-signature-date">Date of last signature</label>
+                    <input
+                      id="last-signature-date"
+                      type="date"
+                      value={lastSignatureDate}
+                      onChange={(event) => setLastSignatureDate(event.target.value)}
+                    />
+                    <small className="field-hint">
+                      This date becomes the agreement’s effective date.
+                    </small>
+                  </div>
+                  <div className="field">
+                    <label htmlFor="acceptance-ref">Signed agreement evidence</label>
+                    <input
+                      id="acceptance-ref"
+                      value={acceptanceReference}
+                      onChange={(event) => setAcceptanceReference(event.target.value)}
+                      placeholder="Signed copy location or email record"
+                    />
+                    <small className="field-hint">
+                      Record where the signed agreement is stored.
+                    </small>
+                  </div>
+                  <button
+                    className="button"
+                    disabled={acceptAgreement.isPending || !acceptanceReference.trim()}
+                    onClick={() => acceptAgreement.mutate()}
+                  >
+                    Record signed agreement
+                  </button>
                 </div>
-                {selectedAgreement?.status === 'draft' && (
-                  <p className="muted">
-                    A draft PDF is for review and can be prepared now. The agreement becomes
-                    accepted only after you record the client’s written acceptance evidence.
-                  </p>
-                )}
-                {generate.data && (
-                  <p role="status">Saved {generate.data.name} in the document library.</p>
-                )}
+                <p className="muted agreement-help">
+                  A draft PDF is for review and can be prepared now. The agreement becomes accepted
+                  only after you record the client’s written acceptance evidence.
+                </p>
               </>
+            )}
+            {selectedAgreement?.status === 'accepted' && (
+              <p className="inline-note agreement-help">
+                Written acceptance is recorded. Generate a final PDF version below. You can prepare
+                the booking confirmation and invoice before this step.
+              </p>
+            )}
+            {generate.data && (
+              <p className="agreement-help" role="status">
+                Saved {generate.data.name} in the document library.
+              </p>
             )}
           </div>
           <p className="inline-note">
@@ -359,6 +390,7 @@ export function ClientDetailPage() {
                     <th>Date</th>
                     <th>Status</th>
                     <th className="numeric">Chargeable total</th>
+                    <th className="actions">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -375,6 +407,32 @@ export function ClientDetailPage() {
                         <Status value={booking.status} />
                       </td>
                       <td className="numeric">{money(booking.total_chargeable_cents)}</td>
+                      <td className="actions">
+                        <div className="table-actions">
+                          <Link className="text-button" to={`/bookings/${booking.id}`}>
+                            Open
+                          </Link>
+                          <button
+                            className="text-button text-button--danger"
+                            type="button"
+                            disabled={booking.status !== 'draft' || deleteBooking.isPending}
+                            title={
+                              booking.status === 'draft'
+                                ? 'Delete this draft and any unpaid draft invoices.'
+                                : 'Accepted and cancelled bookings are retained for the record.'
+                            }
+                            aria-label={`Delete booking ${booking.booking_ref}`}
+                            onClick={() => {
+                              const confirmed = window.confirm(
+                                `Delete draft booking ${booking.booking_ref}? Any unpaid draft invoices will also be deleted. Saved PDFs remain in Documents without a booking link. Accepted bookings and bookings with issued invoices or payments cannot be deleted.`,
+                              )
+                              if (confirmed) deleteBooking.mutate(booking.id)
+                            }}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

@@ -238,6 +238,21 @@ td {
   border-bottom: 1px solid var(--line);
   vertical-align: top;
 }
+th.actions,
+td.actions {
+  white-space: nowrap;
+  text-align: right;
+}
+.table-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  white-space: nowrap;
+}
+.table-actions > * {
+  flex: 0 0 auto;
+}
 td.numeric,
 th.numeric {
   text-align: right;
@@ -532,19 +547,45 @@ th.numeric {
   white-space: pre-line;
 }
 .agreement-actions {
-  display: grid;
-  grid-template-columns: 220px auto;
-  justify-content: start;
-  align-items: end;
-  gap: 1rem;
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.9rem;
   margin-top: 1.2rem;
 }
+.agreement-actions > .stack {
+  width: 100%;
+  min-width: 0;
+}
+.agreement-actions .action-row {
+  flex-wrap: nowrap;
+  align-items: center;
+  overflow-x: auto;
+}
+.agreement-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem;
+}
+.agreement-actions .action-row > .button,
+.agreement-action-row > .button {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
 .acceptance-fields {
-  grid-column: 1 / -1;
   display: grid;
-  grid-template-columns: 220px minmax(220px, 1fr) auto;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr) max-content;
   align-items: end;
   gap: 0.8rem;
+}
+.acceptance-fields .button {
+  white-space: nowrap;
+}
+.agreement-help {
+  max-width: 72ch;
+  margin-bottom: 0;
 }
 .settings-list {
   display: grid;
@@ -686,6 +727,13 @@ th.numeric {
   .dashboard-grid {
     grid-template-columns: 1fr;
   }
+  .acceptance-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .acceptance-fields > .button {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
 }
 @media (max-width: 560px) {
   .metric-grid {
@@ -729,8 +777,12 @@ th.numeric {
   .acceptance-fields {
     grid-template-columns: 1fr;
   }
-  .agreement-actions {
-    grid-template-columns: 1fr;
+  .agreement-actions .action-row {
+    flex-wrap: wrap;
+  }
+  .acceptance-fields > .button {
+    grid-column: auto;
+    justify-self: stretch;
   }
   .settings-list > div {
     grid-template-columns: 1fr;
