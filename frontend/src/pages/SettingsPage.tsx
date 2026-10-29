@@ -11,12 +11,24 @@ import type { Profile } from '../types'
 type Values = z.infer<typeof profileSchema>
 type FormInput = z.input<typeof profileSchema>
 
+function profileFormValues(profile: Profile): FormInput {
+  return {
+    ...profile,
+    business_name: profile.business_name ?? '',
+    default_payment_terms_days: profile.default_payment_terms_days ?? '',
+    default_photography_rate: profile.default_photography_rate ?? '',
+    default_overtime_rate: profile.default_overtime_rate ?? '',
+    default_delivery_method: profile.default_delivery_method ?? '',
+    default_delivery_deadline: profile.default_delivery_deadline ?? '',
+  }
+}
+
 export function SettingsPage() {
   const queryClient = useQueryClient()
   const settings = useQuery({ queryKey: ['settings'], queryFn: api.settings })
   const form = useForm<FormInput, unknown, Values>({ resolver: zodResolver(profileSchema) })
   useEffect(() => {
-    if (settings.data) form.reset(settings.data.profile)
+    if (settings.data) form.reset(profileFormValues(settings.data.profile))
   }, [settings.data, form])
   const update = useMutation({
     mutationFn: (profile: Profile) => api.updateSettings(profile),
@@ -45,8 +57,9 @@ export function SettingsPage() {
               <input id="legal_name" {...form.register('legal_name')} />
             </div>
             <div className="field">
-              <label htmlFor="business_name">Business name</label>
+              <label htmlFor="business_name">Business name (optional)</label>
               <input id="business_name" {...form.register('business_name')} />
+              <span className="muted">Leave blank if you do not use a separate business name.</span>
             </div>
             <div className="field field--wide">
               <label htmlFor="mailing_address">Mailing address</label>
@@ -68,31 +81,58 @@ export function SettingsPage() {
               <textarea id="payment_instructions" {...form.register('payment_instructions')} />
             </div>
             <div className="field">
-              <label htmlFor="default_photography_rate">Default photography rate ($)</label>
-              <input id="default_photography_rate" {...form.register('default_photography_rate')} />
+              <label htmlFor="default_photography_rate">
+                Default photography rate ($, optional)
+              </label>
+              <input
+                id="default_photography_rate"
+                type="number"
+                min="0"
+                step="0.01"
+                {...form.register('default_photography_rate')}
+              />
+              {form.formState.errors.default_photography_rate && (
+                <FieldError>{form.formState.errors.default_photography_rate.message}</FieldError>
+              )}
             </div>
             <div className="field">
-              <label htmlFor="default_overtime_rate">Default overtime rate ($)</label>
-              <input id="default_overtime_rate" {...form.register('default_overtime_rate')} />
+              <label htmlFor="default_overtime_rate">Default overtime rate ($, optional)</label>
+              <input
+                id="default_overtime_rate"
+                type="number"
+                min="0"
+                step="0.01"
+                {...form.register('default_overtime_rate')}
+              />
+              {form.formState.errors.default_overtime_rate && (
+                <FieldError>{form.formState.errors.default_overtime_rate.message}</FieldError>
+              )}
             </div>
             <div className="field">
               <label htmlFor="default_payment_terms_days">
-                Default payment terms (calendar days)
+                Default payment terms (calendar days, optional)
               </label>
               <input
                 id="default_payment_terms_days"
                 type="number"
                 min="0"
                 max="365"
-                {...form.register('default_payment_terms_days')}
+                {...form.register('default_payment_terms_days', {
+                  setValueAs: (value: string) => (value === '' ? '' : Number(value)),
+                })}
               />
+              {form.formState.errors.default_payment_terms_days && (
+                <FieldError>{form.formState.errors.default_payment_terms_days.message}</FieldError>
+              )}
             </div>
             <div className="field">
-              <label htmlFor="default_delivery_method">Default delivery method</label>
+              <label htmlFor="default_delivery_method">Default delivery method (optional)</label>
               <input id="default_delivery_method" {...form.register('default_delivery_method')} />
             </div>
             <div className="field field--wide">
-              <label htmlFor="default_delivery_deadline">Default delivery deadline</label>
+              <label htmlFor="default_delivery_deadline">
+                Default delivery deadline (optional)
+              </label>
               <input
                 id="default_delivery_deadline"
                 {...form.register('default_delivery_deadline')}

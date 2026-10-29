@@ -1,4 +1,4 @@
-Version: 6
+Version: 7
 
 # Repository Guidelines
 
@@ -18,6 +18,8 @@ Photography Document Studio manages local clients, agreements, bookings, invoice
 Use four spaces and type annotations in Python (`snake_case`, Ruff configured in `backend/pyproject.toml`). Keep API contracts in Pydantic schemas, authoritative money math in `backend/app/services/pricing.py`, persistence in SQLAlchemy models/repositories, and document layout in Jinja templates. Store money as integer USD cents and quantities as validated decimal strings. Draft bookings may change; accepted booking snapshots and issued invoices must remain immutable unless a recorded amendment or revision is created.
 
 Use strict TypeScript, functional React components, CSS Modules, TanStack Query for server state, and React Hook Form with Zod for forms. Keep API calls centralized in `frontend/src/services/api.ts`. `npm run desktop --prefix frontend` builds the UI, runs migrations, and launches Electron with its backend child. Do not add remote fonts, assets, telemetry, cloud services, or runtime network dependencies.
+
+Photographer business name and profile-level rates, payment terms, delivery method, and delivery deadline are optional. Keep blank values nullable across the API, database, and settings form; booking-level data remains authoritative once saved.
 
 ## Verification and Change Review
 

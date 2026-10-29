@@ -162,8 +162,8 @@ export function BookingEditorPage() {
       form.reset(
         emptyValues(
           clientIdFromUrl,
-          settings.data.profile.default_photography_rate,
-          settings.data.profile.default_overtime_rate,
+          settings.data.profile.default_photography_rate ?? '800.00',
+          settings.data.profile.default_overtime_rate ?? '150.00',
         ),
       )
     }

@@ -164,25 +164,46 @@ class PaymentInput(APIModel):
 
 class ProfileInput(APIModel):
     legal_name: str = Field(default="", max_length=200)
-    business_name: str = Field(default="", max_length=200)
+    business_name: str | None = Field(default=None, max_length=200)
     mailing_address: str = Field(default="", max_length=4000)
     email: str = Field(default="", max_length=254)
     phone: str = Field(default="", max_length=80)
     payment_instructions: str = Field(default="", max_length=4000)
-    default_payment_terms_days: int = Field(default=15, ge=0, le=365)
+    default_payment_terms_days: int | None = Field(default=None, ge=0, le=365)
     currency: Literal["USD"] = "USD"
-    default_photography_rate: str = "0"
-    default_overtime_rate: str = "150.00"
-    default_delivery_method: str = Field(default="Online gallery", max_length=80)
-    default_delivery_deadline: str = Field(
-        default="Within ten (10) business days after the event", max_length=120
-    )
+    default_photography_rate: str | None = Field(default=None, max_length=32)
+    default_overtime_rate: str | None = Field(default=None, max_length=32)
+    default_delivery_method: str | None = Field(default=None, max_length=80)
+    default_delivery_deadline: str | None = Field(default=None, max_length=120)
 
     @field_validator("email")
     @classmethod
     def valid_optional_email(cls, value: str) -> str:
         if value and not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", value):
             raise ValueError("Enter a valid email address")
+        return value
+
+    @field_validator(
+        "business_name", "default_delivery_method", "default_delivery_deadline", mode="before"
+    )
+    @classmethod
+    def blank_optional_text_is_unset(cls, value: object) -> object:
+        if isinstance(value, str):
+            return value.strip() or None
+        return value
+
+    @field_validator("default_payment_terms_days", mode="before")
+    @classmethod
+    def blank_optional_days_is_unset(cls, value: object) -> object:
+        if isinstance(value, str) and not value.strip():
+            return None
+        return value
+
+    @field_validator("default_photography_rate", "default_overtime_rate", mode="before")
+    @classmethod
+    def blank_optional_rate_is_unset(cls, value: object) -> object:
+        if isinstance(value, str):
+            return value.strip() or None
         return value
 
 

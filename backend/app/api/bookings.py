@@ -92,7 +92,7 @@ def create_booking(payload: BookingInput, session: Session = Depends(get_session
                 delivery_deadline=payload.delivery_deadline
                 or (
                     profile.default_delivery_deadline
-                    if profile
+                    if profile and profile.default_delivery_deadline
                     else "Within ten (10) business days after the event"
                 ),
                 special_deliverables=payload.special_deliverables,

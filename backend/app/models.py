@@ -55,21 +55,17 @@ class PhotographerProfile(TimestampMixin, Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     legal_name: Mapped[str] = mapped_column(String(200), default="", nullable=False)
-    business_name: Mapped[str] = mapped_column(String(200), default="", nullable=False)
+    business_name: Mapped[str | None] = mapped_column(String(200), nullable=True)
     mailing_address: Mapped[str] = mapped_column(Text, default="", nullable=False)
     email: Mapped[str] = mapped_column(String(254), default="", nullable=False)
     phone: Mapped[str] = mapped_column(String(80), default="", nullable=False)
     payment_instructions: Mapped[str] = mapped_column(Text, default="", nullable=False)
-    default_payment_terms_days: Mapped[int] = mapped_column(Integer, default=15, nullable=False)
+    default_payment_terms_days: Mapped[int | None] = mapped_column(Integer, nullable=True)
     currency: Mapped[str] = mapped_column(String(3), default="USD", nullable=False)
-    default_photography_rate_cents: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    default_overtime_rate_cents: Mapped[int] = mapped_column(Integer, default=15000, nullable=False)
-    default_delivery_method: Mapped[str] = mapped_column(
-        String(80), default="Online gallery", nullable=False
-    )
-    default_delivery_deadline: Mapped[str] = mapped_column(
-        String(120), default="Within ten (10) business days after the event", nullable=False
-    )
+    default_photography_rate_cents: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    default_overtime_rate_cents: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    default_delivery_method: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    default_delivery_deadline: Mapped[str | None] = mapped_column(String(120), nullable=True)
 
 
 class MasterAgreement(TimestampMixin, Base):

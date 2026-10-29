@@ -373,29 +373,44 @@ def set_profile(session: Session, payload: Any) -> PhotographerProfile:
     profile.payment_instructions = payload.payment_instructions
     profile.default_payment_terms_days = payload.default_payment_terms_days
     profile.currency = payload.currency
-    profile.default_photography_rate_cents = money_to_cents(payload.default_photography_rate)
-    profile.default_overtime_rate_cents = money_to_cents(payload.default_overtime_rate)
+    profile.default_photography_rate_cents = (
+        money_to_cents(payload.default_photography_rate)
+        if payload.default_photography_rate is not None
+        else None
+    )
+    profile.default_overtime_rate_cents = (
+        money_to_cents(payload.default_overtime_rate)
+        if payload.default_overtime_rate is not None
+        else None
+    )
     profile.default_delivery_method = payload.default_delivery_method
     profile.default_delivery_deadline = payload.default_delivery_deadline
     return profile
 
 
 def profile_values(profile: PhotographerProfile | None) -> dict[str, Any]:
-    if profile is None:
-        profile = PhotographerProfile()
+    """Serialize a saved or empty photographer profile without applying hidden defaults."""
     return {
-        "legal_name": profile.legal_name,
-        "business_name": profile.business_name,
-        "mailing_address": profile.mailing_address,
-        "email": profile.email,
-        "phone": profile.phone,
-        "payment_instructions": profile.payment_instructions,
-        "default_payment_terms_days": profile.default_payment_terms_days,
-        "currency": profile.currency,
-        "default_photography_rate": _cents_text(profile.default_photography_rate_cents),
-        "default_overtime_rate": _cents_text(profile.default_overtime_rate_cents),
-        "default_delivery_method": profile.default_delivery_method,
-        "default_delivery_deadline": profile.default_delivery_deadline,
+        "legal_name": profile.legal_name if profile else "",
+        "business_name": profile.business_name if profile else None,
+        "mailing_address": profile.mailing_address if profile else "",
+        "email": profile.email if profile else "",
+        "phone": profile.phone if profile else "",
+        "payment_instructions": profile.payment_instructions if profile else "",
+        "default_payment_terms_days": profile.default_payment_terms_days if profile else None,
+        "currency": profile.currency if profile else "USD",
+        "default_photography_rate": (
+            _cents_text(profile.default_photography_rate_cents)
+            if profile and profile.default_photography_rate_cents is not None
+            else None
+        ),
+        "default_overtime_rate": (
+            _cents_text(profile.default_overtime_rate_cents)
+            if profile and profile.default_overtime_rate_cents is not None
+            else None
+        ),
+        "default_delivery_method": profile.default_delivery_method if profile else None,
+        "default_delivery_deadline": profile.default_delivery_deadline if profile else None,
     }
 
 

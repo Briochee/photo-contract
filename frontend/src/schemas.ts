@@ -7,6 +7,24 @@ const decimalString = (label: string, allowZero = true) =>
     .regex(/^\d+(?:\.\d{1,3})?$/, `${label} must be a decimal number`)
     .refine((value) => allowZero || Number(value) > 0, `${label} must be greater than zero`)
 
+const optionalDecimalString = (label: string) =>
+  z
+    .string()
+    .trim()
+    .max(32)
+    .refine(
+      (value) => !value || /^\d+(?:\.\d{1,3})?$/.test(value),
+      `${label} must be a decimal number`,
+    )
+    .transform((value) => value || null)
+
+const optionalText = (maxLength: number) =>
+  z
+    .string()
+    .trim()
+    .max(maxLength)
+    .transform((value) => value || null)
+
 export const clientSchema = z.object({
   legal_name: z.string().trim().min(1, 'Legal entity name is required').max(200),
   display_name: z.string().max(200).nullable().optional(),
@@ -76,15 +94,17 @@ export const invoiceSchema = z.object({
 
 export const profileSchema = z.object({
   legal_name: z.string().max(200),
-  business_name: z.string().max(200),
+  business_name: optionalText(200),
   mailing_address: z.string().max(4000),
   email: z.string().trim().email('Enter a valid email').or(z.literal('')),
   phone: z.string().max(80),
   payment_instructions: z.string().max(4000),
-  default_payment_terms_days: z.coerce.number().int().min(0).max(365),
+  default_payment_terms_days: z
+    .union([z.literal(''), z.number().int().min(0).max(365)])
+    .transform((value) => (value === '' ? null : value)),
   currency: z.literal('USD'),
-  default_photography_rate: decimalString('Photography rate'),
-  default_overtime_rate: decimalString('Overtime rate'),
-  default_delivery_method: z.string().max(80),
-  default_delivery_deadline: z.string().max(120),
+  default_photography_rate: optionalDecimalString('Photography rate'),
+  default_overtime_rate: optionalDecimalString('Overtime rate'),
+  default_delivery_method: optionalText(80),
+  default_delivery_deadline: optionalText(120),
 })

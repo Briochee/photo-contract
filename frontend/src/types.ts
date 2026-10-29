@@ -167,17 +167,17 @@ export type GeneratedDocument = {
 
 export type Profile = {
   legal_name: string
-  business_name: string
+  business_name: string | null
   mailing_address: string
   email: string
   phone: string
   payment_instructions: string
-  default_payment_terms_days: number
+  default_payment_terms_days: number | null
   currency: 'USD'
-  default_photography_rate: string
-  default_overtime_rate: string
-  default_delivery_method: string
-  default_delivery_deadline: string
+  default_photography_rate: string | null
+  default_overtime_rate: string | null
+  default_delivery_method: string | null
+  default_delivery_deadline: string | null
 }
 
 export type Settings = {
