@@ -78,6 +78,7 @@ export function InvoiceEditorPage() {
     },
   })
   const bookingId = Number(useWatch({ control: form.control, name: 'booking_id' })) || 0
+  const invoiceDate = useWatch({ control: form.control, name: 'invoice_date' })
   const bookingQuery = useQuery({
     queryKey: ['booking', bookingId],
     queryFn: () => api.booking(bookingId),
@@ -94,6 +95,7 @@ export function InvoiceEditorPage() {
   const [paymentReference, setPaymentReference] = useState('')
   const [paymentNotes, setPaymentNotes] = useState('')
   const [lastGeneratedName, setLastGeneratedName] = useState('')
+  const [validationError, setValidationError] = useState('')
 
   useEffect(() => {
     if (invoiceQuery.data) {
@@ -152,6 +154,15 @@ export function InvoiceEditorPage() {
     }
   }, [bookingQuery.data, form, invoiceId, invoiceQuery.data])
 
+  useEffect(() => {
+    const booking = bookingQuery.data
+    if (!booking || !invoiceDate) return
+    const expectedDueDate = addDays(invoiceDate, booking.payment_terms_days)
+    if (form.getValues('due_date') !== expectedDueDate) {
+      form.setValue('due_date', expectedDueDate, { shouldValidate: true })
+    }
+  }, [bookingId, bookingQuery.data, form, invoiceDate])
+
   const invalidate = async () => {
     await queryClient.invalidateQueries({ queryKey: ['invoices'] })
     await queryClient.invalidateQueries({ queryKey: ['dashboard'] })
@@ -168,6 +179,17 @@ export function InvoiceEditorPage() {
       navigate(`/invoices/${invoice.id}`)
     },
   })
+  const submit = form.handleSubmit(
+    (value) => {
+      setValidationError('')
+      save.mutate(value)
+    },
+    () => {
+      setValidationError(
+        'Review the booking, invoice date, due date, and charge details before saving. No invoice was sent to the server.',
+      )
+    },
+  )
   const issue = useMutation({
     mutationFn: () => api.issueInvoice(invoiceId!),
     onSuccess: async (issued) => {
@@ -261,6 +283,11 @@ export function InvoiceEditorPage() {
             generated.error
           }
         />
+        {validationError && (
+          <div className="error-box" role="alert">
+            {validationError}
+          </div>
+        )}
         {invoice && (
           <div className="record-banner">
             <div>
@@ -271,7 +298,7 @@ export function InvoiceEditorPage() {
             <span className="muted">Booking {invoice.booking_ref}</span>
           </div>
         )}
-        <form className="stack" onSubmit={form.handleSubmit((value) => save.mutate(value))}>
+        <form className="stack" onSubmit={submit}>
           <fieldset className="form-fieldset" disabled={Boolean(locked)}>
             <Panel shadow>
               <div className="section-heading">
@@ -289,8 +316,9 @@ export function InvoiceEditorPage() {
                     ))}
                   </select>
                   <small className="field-hint">
-                    Draft invoices can be prepared and issued without a signature. Issuing the
-                    invoice does not record acceptance of the agreement or booking.
+                    Draft, pending, and finalized bookings are available. No booking or agreement
+                    signature is required to save a draft invoice; issuing it does not record
+                    acceptance.
                   </small>
                   {form.formState.errors.booking_id && (
                     <FieldError>{form.formState.errors.booking_id.message}</FieldError>
@@ -299,12 +327,18 @@ export function InvoiceEditorPage() {
                 <div className="field">
                   <label htmlFor="invoice_date">Invoice date</label>
                   <input id="invoice_date" type="date" {...form.register('invoice_date')} />
+                  {form.formState.errors.invoice_date && (
+                    <FieldError>{form.formState.errors.invoice_date.message}</FieldError>
+                  )}
                 </div>
                 <div className="field invoice-due-field">
                   <label htmlFor="due_date">
                     Due date · follows Net {booking?.payment_terms_days ?? '15'} booking terms
                   </label>
                   <input id="due_date" type="date" {...form.register('due_date')} />
+                  {form.formState.errors.due_date && (
+                    <FieldError>{form.formState.errors.due_date.message}</FieldError>
+                  )}
                 </div>
               </div>
             </Panel>
@@ -313,7 +347,12 @@ export function InvoiceEditorPage() {
                 <h2>Itemized charges</h2>
                 <span className="muted">Charges follow the saved booking amounts</span>
               </div>
-              {!booking && <p className="muted">Select a saved booking to load its charges.</p>}
+              {!booking && (
+                <p className="muted">
+                  Select a saved booking above to load charges. Signing is not required to prepare
+                  this invoice.
+                </p>
+              )}
               <div className="line-list" role="group" aria-label="Invoice line items">
                 <div className="invoice-line-row invoice-line-row--head">
                   <span>Item</span>
@@ -479,7 +518,7 @@ export function InvoiceEditorPage() {
                 Save keeps this invoice editable. Issue locks its financial snapshot and saves a
                 final PDF; the source booking remains unchanged.
               </span>
-              <button className="button button--primary" disabled={save.isPending || !booking}>
+              <button className="button button--primary" disabled={save.isPending}>
                 {save.isPending ? 'Saving…' : 'Save invoice draft'}
               </button>
             </div>
