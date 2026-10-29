@@ -277,7 +277,7 @@ export function InvoiceEditorPage() {
               <div className="section-heading">
                 <h2>Invoice details</h2>
               </div>
-              <div className="form-grid">
+              <div className="form-grid invoice-details-grid">
                 <div className="field">
                   <label htmlFor="booking_id">Booking *</label>
                   <select id="booking_id" {...form.register('booking_id', { valueAsNumber: true })}>
@@ -300,7 +300,7 @@ export function InvoiceEditorPage() {
                   <label htmlFor="invoice_date">Invoice date</label>
                   <input id="invoice_date" type="date" {...form.register('invoice_date')} />
                 </div>
-                <div className="field">
+                <div className="field invoice-due-field">
                   <label htmlFor="due_date">
                     Due date · follows Net {booking?.payment_terms_days ?? '15'} booking terms
                   </label>
