@@ -1,4 +1,4 @@
-const { app, BrowserWindow, dialog } = require('electron')
+const { app, BrowserWindow, dialog, Menu } = require('electron')
 const { spawn } = require('node:child_process')
 const net = require('node:net')
 const path = require('node:path')
@@ -134,6 +134,10 @@ function createMainWindow() {
       },
     }
   })
+  mainWindow.webContents.on('did-create-window', (childWindow) => {
+    attachEditingContextMenu(childWindow)
+  })
+  attachEditingContextMenu(mainWindow)
   mainWindow.webContents.on('will-navigate', (event, targetUrl) => {
     if (targetUrl === STARTUP_PAGE_URL) return
     try {
@@ -148,6 +152,40 @@ function createMainWindow() {
     mainWindow = undefined
   })
   return mainWindow
+}
+
+function attachEditingContextMenu(window) {
+  const { webContents } = window
+  if (webContents.isDestroyed()) return
+
+  webContents.on('context-menu', (event, params) => {
+    const editFlags = params.editFlags || {}
+    const hasSelection = Boolean(params.selectionText)
+    if (!params.isEditable && !hasSelection) return
+
+    event.preventDefault()
+    const menu = Menu.buildFromTemplate([
+      { role: 'undo', enabled: Boolean(editFlags.canUndo) },
+      { role: 'redo', enabled: Boolean(editFlags.canRedo) },
+      { type: 'separator' },
+      { role: 'cut', enabled: Boolean(params.isEditable && editFlags.canCut) },
+      { role: 'copy', enabled: Boolean(editFlags.canCopy || hasSelection) },
+      { role: 'paste', enabled: Boolean(params.isEditable && editFlags.canPaste) },
+      { role: 'delete', enabled: Boolean(params.isEditable && editFlags.canDelete) },
+      { type: 'separator' },
+      {
+        role: 'selectAll',
+        enabled: Boolean(editFlags.canSelectAll || params.isEditable),
+      },
+    ])
+    menu.popup({
+      window,
+      frame: params.frame || undefined,
+      x: params.x,
+      y: params.y,
+      sourceType: params.menuSourceType,
+    })
+  })
 }
 
 async function updateStartupStatus(title, detail) {
