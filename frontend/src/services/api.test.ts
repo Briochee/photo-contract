@@ -20,4 +20,24 @@ describe('preview API errors', () => {
       'entity_id: Input should be greater than 0',
     )
   })
+
+  it('sends preview requests as JSON', async () => {
+    const request = { document_type: 'agreement' as const, entity_id: 12 }
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      blob: async () => new Blob(['%PDF-preview'], { type: 'application/pdf' }),
+    })
+    const createObjectURL = vi.fn().mockReturnValue('blob:agreement-preview')
+    vi.stubGlobal('fetch', fetchMock)
+    vi.stubGlobal('URL', { createObjectURL })
+
+    await expect(api.previewDocument(request)).resolves.toBe('blob:agreement-preview')
+
+    expect(fetchMock).toHaveBeenCalledWith('/api/documents/preview', {
+      method: 'POST',
+      body: JSON.stringify(request),
+      headers: { 'Content-Type': 'application/json' },
+    })
+    expect(createObjectURL).toHaveBeenCalledWith(expect.any(Blob))
+  })
 })

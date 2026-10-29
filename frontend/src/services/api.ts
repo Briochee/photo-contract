@@ -134,7 +134,10 @@ export const api = {
   documents: () => request<GeneratedDocument[]>('/api/documents'),
   deleteDocument: (id: number) => request<void>(`/api/documents/${id}`, json('DELETE')),
   previewDocument: async (value: DocumentRequest) => {
-    const response = await fetch('/api/documents/preview', json('POST', value))
+    const response = await fetch('/api/documents/preview', {
+      ...json('POST', value),
+      headers: { 'Content-Type': 'application/json' },
+    })
     if (!response.ok) {
       const payload = await response.json().catch(() => ({}))
       throw new Error(errorMessage(payload, `Preview failed (${response.status})`))
