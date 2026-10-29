@@ -1,11 +1,14 @@
 """Local filesystem and application configuration."""
 
 import os
+import sys
 from pathlib import Path
 
 from dotenv import load_dotenv
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
+PROJECT_ROOT = (
+    Path(sys._MEIPASS) if getattr(sys, "frozen", False) else Path(__file__).resolve().parents[2]
+)
 load_dotenv(PROJECT_ROOT / ".env", override=False)
 
 _data_path = Path(os.environ.get("PHOTO_STUDIO_DATA_DIR", "data")).expanduser()

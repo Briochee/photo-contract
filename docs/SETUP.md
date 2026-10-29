@@ -63,7 +63,32 @@ Launch the desktop application from the repository root after installing depende
 npm run desktop --prefix frontend
 ```
 
-This builds the React UI, applies database migrations, starts FastAPI as an Electron-managed child process on an available loopback port, and opens the desktop window. The backend shuts down when the app closes. Electron uses `.venv/bin/python` (`.venv/Scripts/python.exe` on Windows) when present, then `python3` or `python` on `PATH`; set `PHOTO_STUDIO_PYTHON` to choose another interpreter. Runtime data remains under `PHOTO_STUDIO_DATA_DIR` (default `data/`). No separate backend terminal is needed. `npm install` downloads Electron; normal operation is local and offline.
+This builds the React UI, applies database migrations, starts FastAPI as an Electron-managed child process on an available loopback port, and opens the desktop window. The backend shuts down when the app closes. In development, Electron uses `.venv/bin/python` (`.venv/Scripts/python.exe` on Windows) when present, then `python3` or `python` on `PATH`; set `PHOTO_STUDIO_PYTHON` to choose another interpreter. Runtime data remains under `PHOTO_STUDIO_DATA_DIR` (default `data/`). `npm install` downloads Electron; normal operation is local and offline.
+
+## Build a Finder-Installable macOS App
+
+Build on the Mac and CPU architecture where the app will run. The build bundles the Python backend, the installed Chromium headless runtime for PDF generation, frontend, templates, and legal source; the installed app does not need Python, Node.js, or a separate server.
+
+Install build-time dependencies once from the repository root:
+
+```bash
+source .venv/bin/activate
+python -m pip install -r requirements-packaging.txt
+python -m playwright install chromium
+npm install --prefix frontend
+```
+
+Build the app bundle:
+
+```bash
+npm run build:mac --prefix frontend
+```
+
+The result is `release/mac-arm64/Photography Document Studio.app` on Apple Silicon or `release/mac-x64/Photography Document Studio.app` on Intel. Drag the `.app` into `/Applications` and open it from Finder. The local app stores its database, PDFs, and logs under `~/Library/Application Support/Photography Document Studio/data/` by default; set `PHOTO_STUDIO_DATA_DIR` before launching to choose another location.
+
+If the configured project data directory contains `studio.sqlite3` when you build, the app imports a consistent SQLite backup and the existing local files on first launch. The source data stays untouched; leave it in place until the app has opened once.
+
+This is an ad-hoc signed, local build for the Mac that produced it; it is not notarized for distribution to other Macs. If macOS blocks a locally built copy, approve it in System Settings → Privacy & Security. Public distribution requires a Developer ID signature and Apple notarization.
 
 Build the static frontend and start the single-origin application:
 

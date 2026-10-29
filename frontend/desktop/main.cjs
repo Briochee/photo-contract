@@ -2,14 +2,20 @@ const { app, BrowserWindow, dialog } = require("electron");
 const { spawn } = require("node:child_process");
 const net = require("node:net");
 const path = require("node:path");
-const { existsSync } = require("node:fs");
+const { existsSync, readFileSync } = require("node:fs");
 
-const PROJECT_ROOT = path.resolve(__dirname, "..");
+const PROJECT_ROOT = path.resolve(__dirname, "../..");
+const APP_ROOT = app.isPackaged ? app.getAppPath() : path.join(PROJECT_ROOT, "frontend");
 const STARTUP_TIMEOUT_MS = 45_000;
 const BACKEND_SCRIPT = path.join(
   PROJECT_ROOT,
   "scripts",
   "electron_backend.py",
+);
+const BACKEND_EXECUTABLE = path.join(
+  process.resourcesPath,
+  "backend",
+  "photography-document-studio-backend",
 );
 
 let backendProcess;
@@ -33,15 +39,10 @@ if (!app.requestSingleInstanceLock()) {
 }
 
 async function startApplication() {
-  const frontendIndex = path.join(
-    PROJECT_ROOT,
-    "frontend",
-    "dist",
-    "index.html",
-  );
+  const frontendIndex = path.join(APP_ROOT, "dist", "index.html");
   if (!existsSync(frontendIndex)) {
     throw new Error(
-      "The frontend build is missing. Run `npm run desktop` from frontend/.",
+      "The application interface is missing. Rebuild or reinstall the application.",
     );
   }
 
@@ -118,6 +119,13 @@ async function startApplication() {
 }
 
 function pythonCommand() {
+  if (app.isPackaged) {
+    if (!existsSync(BACKEND_EXECUTABLE)) {
+      throw new Error("The bundled local backend is missing from this app.");
+    }
+    return { command: BACKEND_EXECUTABLE, args: [] };
+  }
+
   const configured = process.env.PHOTO_STUDIO_PYTHON;
   if (configured) {
     if (path.isAbsolute(configured) && !existsSync(configured)) {
@@ -141,22 +149,48 @@ function pythonCommand() {
   };
 }
 
+function packagedLegacyDataDirectory() {
+  if (!app.isPackaged) return "";
+  const configurationPath = path.join(
+    process.resourcesPath,
+    "legacy_data_dir.txt",
+  );
+  try {
+    const source = readFileSync(configurationPath, "utf8").trim();
+    return path.isAbsolute(source) ? source : "";
+  } catch {
+    return "";
+  }
+}
+
 function launchBackend(port) {
   const python = pythonCommand();
+  const args = app.isPackaged
+    ? [...python.args]
+    : [...python.args, BACKEND_SCRIPT];
+  const appEnvironment = app.isPackaged
+    ? {
+        PHOTO_STUDIO_DATA_DIR:
+          process.env.PHOTO_STUDIO_DATA_DIR ||
+          path.join(app.getPath("userData"), "data"),
+        PLAYWRIGHT_BROWSERS_PATH: path.join(process.resourcesPath, "playwright"),
+        PHOTO_STUDIO_LEGACY_DATA_DIR: packagedLegacyDataDirectory(),
+      }
+    : {};
   const child = spawn(
     python.command,
     [
-      ...python.args,
-      BACKEND_SCRIPT,
+      ...args,
       "--host",
       "127.0.0.1",
       "--port",
       String(port),
     ],
     {
-      cwd: PROJECT_ROOT,
+      cwd: app.isPackaged ? app.getPath("userData") : PROJECT_ROOT,
       env: {
         ...process.env,
+        ...appEnvironment,
         PHOTO_STUDIO_PORT: String(port),
         PYTHONUNBUFFERED: "1",
       },
@@ -207,7 +241,8 @@ function waitForBackend(child, origin) {
       clearTimeout(retryTimer);
       child.off("exit", onExit);
       child.off("error", onError);
-      error ? reject(error) : resolve();
+      if (error) reject(error);
+      else resolve();
     };
 
     const onExit = (code, signal) => {
@@ -257,7 +292,9 @@ async function showStartupError(error) {
   if (backendProcess && backendProcess.exitCode === null) await stopBackend();
   dialog.showErrorBox(
     "Could not start Photography Document Studio",
-    `${error.message}\n\nConfirm that the project Python environment is installed. See docs/SETUP.md for setup instructions.`,
+    app.isPackaged
+      ? `${error.message}\n\nTry reinstalling the application. Your saved data is kept separately on this Mac.`
+      : `${error.message}\n\nConfirm that the project Python environment is installed. See docs/SETUP.md for setup instructions.`,
   );
   app.quit();
 }
