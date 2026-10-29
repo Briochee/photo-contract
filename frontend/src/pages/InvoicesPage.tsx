@@ -54,7 +54,7 @@ export function InvoicesPage() {
               <thead>
                 <tr>
                   <th>Invoice</th>
-                  <th>Client / assignment</th>
+                  <th>Client / session or event</th>
                   <th>Issued</th>
                   <th>Due</th>
                   <th>Status</th>

@@ -21,8 +21,7 @@ import { lineAmountCents } from '../utils/money'
 
 type FormInput = z.input<typeof bookingSchema>
 type Values = z.output<typeof bookingSchema>
-const packageDescription =
-  'Corporate event photography package (up to six hours; editing and delivery included)'
+const packageDescription = 'Photography coverage package (editing and digital delivery included)'
 
 function emptyValues(clientId = 0, rate = '800.00', overtime = '150.00'): Values {
   return {
@@ -246,12 +245,12 @@ export function BookingEditorPage() {
   return (
     <>
       <PageHeader
-        eyebrow="Booking / Assignment record"
+        eyebrow="Booking / Session and event record"
         title={booking?.booking_ref ?? 'New booking'}
         description={
           booking
             ? `${booking.client.legal_name} · ${booking.event_name}`
-            : 'Build a clear assignment brief and review the agreed fees.'
+            : 'Create a brief for a wedding, portrait session, headshot, celebration, or event.'
         }
         action={
           <Link className="button button--quiet" to="/bookings">
@@ -324,25 +323,46 @@ export function BookingEditorPage() {
                         </option>
                       ))}
                   </select>
-                  <small className="muted">Create an agreement from the client record.</small>
+                  <small className="field-hint">Create an agreement from the client record.</small>
                 </div>
               </div>
             </Panel>
             <Panel>
               <div className="section-heading">
-                <h2>02 · Event details</h2>
+                <h2>02 · Session and event details</h2>
               </div>
               <div className="form-grid">
                 <div className="field">
-                  <label htmlFor="event_name">Event / assignment *</label>
+                  <label htmlFor="event_name">Session / event name *</label>
                   <input id="event_name" {...form.register('event_name')} />
                   {form.formState.errors.event_name && (
                     <FieldError>{form.formState.errors.event_name.message}</FieldError>
                   )}
                 </div>
                 <div className="field">
-                  <label htmlFor="event_type">Event type</label>
-                  <input id="event_type" {...form.register('event_type')} />
+                  <label htmlFor="event_type">Session or event type</label>
+                  <input
+                    id="event_type"
+                    list="event-type-options"
+                    {...form.register('event_type')}
+                  />
+                  <datalist id="event-type-options">
+                    <option value="Wedding" />
+                    <option value="Engagement" />
+                    <option value="Birthday" />
+                    <option value="Family portrait" />
+                    <option value="Professional headshot" />
+                    <option value="Graduation" />
+                    <option value="Maternity" />
+                    <option value="Anniversary" />
+                    <option value="Private celebration" />
+                    <option value="Corporate event" />
+                    <option value="Conference" />
+                    <option value="Product or brand photography" />
+                  </datalist>
+                  <small className="field-hint">
+                    Choose a suggestion or enter any session or event type.
+                  </small>
                 </div>
                 <div className="field">
                   <label htmlFor="event_date">Event date *</label>
@@ -685,7 +705,7 @@ export function BookingEditorPage() {
                 <div className="field">
                   <label htmlFor="exceptions">Exceptions to master agreement</label>
                   <textarea id="exceptions" {...form.register('exceptions')} />
-                  <small className="muted">
+                  <small className="field-hint">
                     Identify the affected section and replacement terms.
                   </small>
                 </div>

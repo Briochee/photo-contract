@@ -7,7 +7,7 @@
   <div><h2>From</h2><p><strong>{{ photographer.legal_name or photographer.business_name }}</strong><br>{{ photographer.mailing_address }}<br>{{ photographer.email }} · {{ photographer.phone }}</p></div>
   <div><h2>Bill to</h2><p><strong>{{ client.legal_name }}</strong><br>{{ client.mailing_address }}<br>{{ client.primary_contact_name }}<br>{{ client.contact_email }}</p></div>
 </section>
-<section class="assignment-band"><span class="label">Assignment</span><strong>{{ event_name }}</strong><span>{{ event_date }} · Booking {{ booking_ref }}</span></section>
+<section class="assignment-band"><span class="label">Session / event</span><strong>{{ event_name }}</strong><span>{{ event_date }} · Booking {{ booking_ref }}</span></section>
 <section><h2>Itemized charges</h2><table><thead><tr><th>Item</th><th class="numeric">Quantity</th><th class="numeric">Rate</th><th class="numeric">Amount</th></tr></thead><tbody>
   {% for item in line_items %}<tr><td>{{ item.description }}</td><td class="numeric">{{ item.quantity }} {{ item.unit }}</td><td class="numeric">{{ money(item.unit_rate_cents) }}</td><td class="numeric">{{ money(item.amount_cents) }}</td></tr>{% endfor %}
 </tbody></table><div class="summary">

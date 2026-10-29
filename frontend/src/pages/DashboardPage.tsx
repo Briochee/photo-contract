@@ -20,7 +20,7 @@ export function DashboardPage() {
       <PageHeader
         eyebrow="Studio overview / Local records"
         title="Good work, in focus."
-        description="Current bookings, invoices, and the next assignments on your calendar."
+        description="Current bookings, invoices, and your next photography sessions and events."
         action={
           <Link className="button button--primary" to="/bookings/new">
             New booking
@@ -38,7 +38,7 @@ export function DashboardPage() {
               note="Draft and accepted"
             />
             <Metric
-              label="Upcoming assignments"
+              label="Upcoming bookings"
               value={String(data.upcoming_assignments.length).padStart(2, '0')}
               note="Scheduled from today"
             />
@@ -57,7 +57,7 @@ export function DashboardPage() {
           <div className="dashboard-grid">
             <Panel shadow>
               <div className="section-heading">
-                <h2>Upcoming assignments</h2>
+                <h2>Upcoming bookings</h2>
                 <Link to="/bookings">All bookings →</Link>
               </div>
               {data.upcoming_assignments.length ? (
@@ -66,7 +66,7 @@ export function DashboardPage() {
                     <thead>
                       <tr>
                         <th>Date</th>
-                        <th>Assignment</th>
+                        <th>Session / event</th>
                         <th>Client</th>
                         <th>Status</th>
                       </tr>
@@ -92,7 +92,7 @@ export function DashboardPage() {
                 </div>
               ) : (
                 <EmptyState
-                  title="No upcoming assignments"
+                  title="No upcoming bookings"
                   detail="Create a booking to keep your next work in view."
                 />
               )}

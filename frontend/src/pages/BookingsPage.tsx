@@ -34,9 +34,9 @@ export function BookingsPage() {
   return (
     <>
       <PageHeader
-        eyebrow="Assignments / Schedule and scope"
+        eyebrow="Bookings / Schedule and scope"
         title="Bookings"
-        description="Draft, review, and preserve the agreed details for each photography assignment."
+        description="Manage bookings for weddings, portraits, celebrations, events, and other photography work."
         action={
           <Link to="/bookings/new" className="button button--primary">
             New booking
@@ -77,7 +77,7 @@ export function BookingsPage() {
               <thead>
                 <tr>
                   <th>Reference</th>
-                  <th>Assignment</th>
+                  <th>Session / event</th>
                   <th>Client</th>
                   <th>Event date</th>
                   <th>Status</th>
@@ -111,7 +111,7 @@ export function BookingsPage() {
         ) : (
           <EmptyState
             title="No matching bookings"
-            detail="Create a booking draft and associate it with a client."
+            detail="Create a booking for any photography session or event and associate it with a client."
             action={
               <Link className="button" to="/bookings/new">
                 New booking

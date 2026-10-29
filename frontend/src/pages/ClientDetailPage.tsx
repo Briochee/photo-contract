@@ -336,7 +336,7 @@ export function ClientDetailPage() {
                 <thead>
                   <tr>
                     <th>Reference</th>
-                    <th>Assignment</th>
+                    <th>Session / event</th>
                     <th>Date</th>
                     <th>Status</th>
                     <th className="numeric">Chargeable total</th>
@@ -375,7 +375,7 @@ export function ClientDetailPage() {
                 <thead>
                   <tr>
                     <th>Reference</th>
-                    <th>Assignment</th>
+                    <th>Session / event</th>
                     <th>Date</th>
                     <th>Status</th>
                     <th className="numeric">Balance</th>

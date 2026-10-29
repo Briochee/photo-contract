@@ -59,7 +59,9 @@ export function SettingsPage() {
             <div className="field">
               <label htmlFor="business_name">Business name (optional)</label>
               <input id="business_name" {...form.register('business_name')} />
-              <span className="muted">Leave blank if you do not use a separate business name.</span>
+              <span className="field-hint">
+                Leave blank if you do not use a separate business name.
+              </span>
             </div>
             <div className="field field--wide">
               <label htmlFor="mailing_address">Mailing address</label>

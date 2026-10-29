@@ -443,7 +443,9 @@ export function InvoiceEditorPage() {
                   <div className="field">
                     <label htmlFor="tax_rate">Tax rate (%)</label>
                     <input id="tax_rate" inputMode="decimal" {...form.register('tax_rate')} />
-                    <small className="muted">Confirm the applicable treatment independently.</small>
+                    <small className="field-hint">
+                      Confirm the applicable treatment independently.
+                    </small>
                   </div>
                 )}
                 {taxMode === 'manual' && (

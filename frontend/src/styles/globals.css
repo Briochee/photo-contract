@@ -164,6 +164,10 @@ h3 {
   grid-column: 1 / -1;
 }
 .field label {
+  display: flex;
+  min-height: 2.4em;
+  align-items: flex-end;
+  line-height: 1.2;
   font-size: 0.84rem;
   font-weight: 700;
 }
@@ -190,6 +194,11 @@ h3 {
 .field-error {
   color: var(--danger);
   font-size: 0.8rem;
+}
+.field-hint {
+  color: var(--ink-soft);
+  font-size: 0.78rem;
+  line-height: 1.35;
 }
 .muted {
   color: var(--ink-soft);
@@ -372,6 +381,11 @@ th.numeric {
 }
 .line-row .field {
   gap: 0.15rem;
+}
+.line-row .field label {
+  display: block;
+  min-height: 0;
+  line-height: 1.1;
 }
 .line-row .field input,
 .line-row .field select {
@@ -697,6 +711,9 @@ th.numeric {
   }
   .form-grid {
     grid-template-columns: 1fr;
+  }
+  .field label {
+    min-height: 0;
   }
   .field--wide {
     grid-column: auto;
