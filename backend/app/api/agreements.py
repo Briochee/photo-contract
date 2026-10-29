@@ -3,13 +3,14 @@
 import hashlib
 from datetime import UTC, datetime, time
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from backend.app.config import LEGAL_SOURCE, TEMPLATE_VERSION
 from backend.app.database import get_session
-from backend.app.models import Client, MasterAgreement, PhotographerProfile
+from backend.app.models import Booking, Client, MasterAgreement, PhotographerProfile
 from backend.app.schemas import AgreementAcceptInput, AgreementInput
 from backend.app.services.domain import client_values, profile_values, snapshot
 from backend.app.services.references import allocate_reference
@@ -100,6 +101,28 @@ def get_agreement(agreement_id: int, session: Session = Depends(get_session)):
     if agreement is None:
         raise HTTPException(404, "Agreement not found")
     return _agreement_values(agreement)
+
+
+@router.delete("/{agreement_id}", status_code=204)
+def delete_agreement(agreement_id: int, session: Session = Depends(get_session)) -> Response:
+    """Delete an agreement record only when no booking depends on its terms."""
+    agreement = session.get(MasterAgreement, agreement_id)
+    if agreement is None:
+        raise HTTPException(404, "Agreement not found")
+    booking_id = session.scalar(
+        select(Booking.id).where(Booking.agreement_id == agreement_id).limit(1)
+    )
+    if booking_id is not None:
+        raise HTTPException(409, "This agreement is linked to a booking and cannot be deleted")
+    try:
+        session.delete(agreement)
+        session.commit()
+    except IntegrityError as exc:
+        session.rollback()
+        raise HTTPException(
+            409, "This agreement is linked to another record and cannot be deleted"
+        ) from exc
+    return Response(status_code=204)
 
 
 @router.post("/{agreement_id}/accept")

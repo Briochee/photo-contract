@@ -91,7 +91,9 @@ class MasterAgreement(TimestampMixin, Base):
 
     client: Mapped[Client] = relationship(back_populates="agreements")
     photographer: Mapped[PhotographerProfile] = relationship()
-    bookings: Mapped[list["Booking"]] = relationship(back_populates="agreement")
+    bookings: Mapped[list["Booking"]] = relationship(
+        back_populates="agreement", passive_deletes="all"
+    )
 
 
 class Booking(TimestampMixin, Base):

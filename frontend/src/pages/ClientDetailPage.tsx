@@ -66,6 +66,13 @@ export function ClientDetailPage() {
       }),
     onSuccess: refresh,
   })
+  const deleteAgreement = useMutation({
+    mutationFn: (id: number) => api.deleteAgreement(id),
+    onSuccess: async (_, deletedId) => {
+      if (agreementId === deletedId) setAgreementId(null)
+      await refresh()
+    },
+  })
   const generate = useMutation({
     mutationFn: () => api.generateDocument({ document_type: 'agreement', entity_id: agreementId! }),
     onSuccess: async () => {
@@ -97,7 +104,13 @@ export function ClientDetailPage() {
       />
       <div className="stack">
         <ErrorMessage
-          error={update.error || createAgreement.error || acceptAgreement.error || generate.error}
+          error={
+            update.error ||
+            createAgreement.error ||
+            acceptAgreement.error ||
+            deleteAgreement.error ||
+            generate.error
+          }
         />
         <Panel shadow>
           <div className="section-heading">
@@ -194,7 +207,7 @@ export function ClientDetailPage() {
                     <th>Effective</th>
                     <th>Status</th>
                     <th>Template</th>
-                    <th></th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -209,9 +222,32 @@ export function ClientDetailPage() {
                       <td>
                         <button
                           className="text-button"
+                          type="button"
                           onClick={() => setAgreementId(agreement.id)}
                         >
                           Select
+                        </button>
+                        <button
+                          className="text-button text-button--danger"
+                          type="button"
+                          disabled={
+                            deleteAgreement.isPending ||
+                            record.bookings.some((booking) => booking.agreement_id === agreement.id)
+                          }
+                          title={
+                            record.bookings.some((booking) => booking.agreement_id === agreement.id)
+                              ? 'This agreement is linked to a booking.'
+                              : undefined
+                          }
+                          aria-label={`Delete agreement ${agreement.agreement_ref}`}
+                          onClick={() => {
+                            const confirmed = window.confirm(
+                              `Delete ${agreement.agreement_ref}? This removes the saved agreement and its acceptance record. Any generated PDF copies remain in Documents.`,
+                            )
+                            if (confirmed) deleteAgreement.mutate(agreement.id)
+                          }}
+                        >
+                          Delete
                         </button>
                       </td>
                     </tr>

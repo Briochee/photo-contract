@@ -24,6 +24,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     const error = (await response.json().catch(() => ({}))) as ErrorPayload
     throw new Error(error.detail ?? `Request failed (${response.status})`)
   }
+  if (response.status === 204) return undefined as T
   return (await response.json()) as T
 }
 
@@ -92,6 +93,7 @@ export const api = {
   }) => request<Agreement>('/api/agreements', json('POST', value)),
   acceptAgreement: (id: number, value: { accepted_date: string; acceptance_reference: string }) =>
     request<Agreement>(`/api/agreements/${id}/accept`, json('POST', value)),
+  deleteAgreement: (id: number) => request<void>(`/api/agreements/${id}`, json('DELETE')),
   settings: () => request<Settings>('/api/settings'),
   updateSettings: (value: Profile) => request<Settings>('/api/settings', json('PATCH', value)),
   documents: () => request<GeneratedDocument[]>('/api/documents'),
