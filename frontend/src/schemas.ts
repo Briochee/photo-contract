@@ -25,6 +25,11 @@ const optionalText = (maxLength: number) =>
     .max(maxLength)
     .transform((value) => value || null)
 
+const nullableSourceId = z.preprocess(
+  (value) => (value == null || value === '' ? null : Number(value)),
+  z.number().int().positive().nullable(),
+)
+
 export const clientSchema = z.object({
   legal_name: z.string().trim().min(1, 'Legal entity name is required').max(200),
   display_name: z.string().max(200).nullable().optional(),
@@ -86,8 +91,8 @@ export const invoiceSchema = z.object({
   notes: z.string().max(5000),
   line_items: z.array(
     lineItemSchema.extend({
-      source_booking_line_item_id: z.number().int().positive().nullable(),
-      source_expense_id: z.number().int().positive().nullable(),
+      source_booking_line_item_id: nullableSourceId,
+      source_expense_id: nullableSourceId,
     }),
   ),
 })

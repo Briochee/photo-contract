@@ -52,6 +52,35 @@ function addDays(iso: string, days: number): string {
   return local.toISOString().slice(0, 10)
 }
 
+function invoiceValidationMessages(value: unknown, path: string[] = []): string[] {
+  if (!value || typeof value !== 'object') return []
+
+  const error = value as Record<string, unknown>
+  if (typeof error.message === 'string') {
+    const [root, index, field] = path
+    const label =
+      root === 'line_items' && index !== undefined
+        ? `Charge ${Number(index) + 1}${field ? ` (${field.replaceAll('_', ' ')})` : ''}`
+        : ((
+            {
+              booking_id: 'Booking',
+              invoice_date: 'Invoice date',
+              due_date: 'Due date',
+              tax_mode: 'Tax treatment',
+              tax_rate: 'Tax rate',
+              manual_tax: 'Tax amount',
+              notes: 'Invoice notes',
+              line_items: 'Charges',
+            } as Record<string, string>
+          )[root ?? ''] ?? path.join('.'))
+    return [`${label}: ${error.message}`]
+  }
+
+  return Object.entries(error)
+    .filter(([key]) => key !== 'ref' && key !== 'types')
+    .flatMap(([key, nested]) => invoiceValidationMessages(nested, [...path, key]))
+}
+
 export function InvoiceEditorPage() {
   const invoiceId = Number(useParams().invoiceId) || null
   const [params] = useSearchParams()
@@ -190,6 +219,7 @@ export function InvoiceEditorPage() {
       )
     },
   )
+  const validationMessages = invoiceValidationMessages(form.formState.errors)
   const issue = useMutation({
     mutationFn: () => api.issueInvoice(invoiceId!),
     onSuccess: async (issued) => {
@@ -286,6 +316,13 @@ export function InvoiceEditorPage() {
         {validationError && (
           <div className="error-box" role="alert">
             {validationError}
+            {validationMessages.length > 0 && (
+              <ul>
+                {validationMessages.map((message, index) => (
+                  <li key={`${index}-${message}`}>{message}</li>
+                ))}
+              </ul>
+            )}
           </div>
         )}
         {invoice && (
@@ -368,13 +405,15 @@ export function InvoiceEditorPage() {
                       <input
                         type="hidden"
                         {...form.register(`line_items.${index}.source_booking_line_item_id`, {
-                          setValueAs: (value) => (value === '' ? null : Number(value)),
+                          setValueAs: (value) =>
+                            value == null || value === '' ? null : Number(value),
                         })}
                       />
                       <input
                         type="hidden"
                         {...form.register(`line_items.${index}.source_expense_id`, {
-                          setValueAs: (value) => (value === '' ? null : Number(value)),
+                          setValueAs: (value) =>
+                            value == null || value === '' ? null : Number(value),
                         })}
                       />
                       <span>
