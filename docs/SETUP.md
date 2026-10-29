@@ -86,7 +86,7 @@ npm run build:mac --prefix frontend
 
 The result is `release/mac-arm64/Contract Studio.app` on Apple Silicon or `release/mac-x64/Contract Studio.app` on Intel. Drag the `.app` into `/Applications` and open it from Finder. The app keeps existing records in `~/Library/Application Support/Photography Document Studio/data/` for compatibility; set `PHOTO_STUDIO_DATA_DIR` before launching to choose another location. The app icon uses the local `frontend/assets/contract-studio-icon.png` artwork and is converted to `.icns` during the build.
 
-If the configured project data directory contains `studio.sqlite3` when you build, the app imports a consistent SQLite backup and the existing local files on first launch. The source data stays untouched; leave it in place until the app has opened once.
+If the configured project data directory contains `studio.sqlite3` when you build, the app imports a consistent SQLite backup and the existing local files on first launch. Startup reconciles legacy PDF paths to copies in the app's document library only when their SHA-256 hashes match. The source data stays untouched; leave it in place until the app has opened once.
 
 This is an ad-hoc signed, local build for the Mac that produced it; it is not notarized for distribution to other Macs. If macOS blocks a locally built copy, approve it in System Settings → Privacy & Security. Public distribution requires a Developer ID signature and Apple notarization.
 

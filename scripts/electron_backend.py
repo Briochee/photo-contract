@@ -119,14 +119,55 @@ def _same_file_contents(first: Path, second: Path) -> bool:
     if not second.is_file() or first.stat().st_size != second.stat().st_size:
         return False
 
-    def digest(path: Path) -> str:
-        hasher = hashlib.sha256()
-        with path.open("rb") as handle:
-            for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-                hasher.update(chunk)
-        return hasher.hexdigest()
+    return _file_sha256(first) == _file_sha256(second)
 
-    return digest(first) == digest(second)
+
+def _file_sha256(path: Path) -> str:
+    """Hash a file in bounded chunks so large local documents do not load into memory."""
+    hasher = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            hasher.update(chunk)
+    return hasher.hexdigest()
+
+
+def reconcile_document_paths(database_path: Path, library_dir: Path) -> int:
+    """Repair imported paths only when the library contains an identical PDF copy."""
+    if not database_path.is_file() or not library_dir.is_dir():
+        return 0
+
+    library_root = library_dir.resolve()
+    repaired = 0
+    connection = sqlite3.connect(database_path)
+    try:
+        with connection:
+            rows = connection.execute(
+                "SELECT id, file_path, content_hash FROM generated_documents"
+            ).fetchall()
+            for document_id, file_path, expected_hash in rows:
+                recorded_path = Path(file_path).expanduser()
+                try:
+                    if recorded_path.resolve().parent == library_root:
+                        continue
+                    library_copy = library_root / recorded_path.name
+                    if (
+                        library_copy.resolve().parent != library_root
+                        or not library_copy.is_file()
+                        or _file_sha256(library_copy) != expected_hash
+                    ):
+                        continue
+                except OSError:
+                    continue
+
+                connection.execute(
+                    "UPDATE generated_documents SET file_path = ? WHERE id = ?",
+                    (str(library_copy.resolve()), document_id),
+                )
+                repaired += 1
+    finally:
+        connection.close()
+
+    return repaired
 
 
 def main() -> int:
@@ -138,7 +179,8 @@ def main() -> int:
     from alembic import command
     from alembic.config import Config
 
-    from backend.app.config import DATA_DIR, DEFAULT_OUTPUT_DIR
+    from backend.app.config import DATA_DIR, DATABASE_PATH, DEFAULT_OUTPUT_DIR
+    from backend.app.logging_config import activity
 
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     legacy_data_dir = os.environ.get("PHOTO_STUDIO_LEGACY_DATA_DIR", "").strip()
@@ -147,6 +189,9 @@ def main() -> int:
     DEFAULT_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     migration_config = Config(str(ROOT / "backend" / "alembic.ini"))
     command.upgrade(migration_config, "head")
+    repaired_paths = reconcile_document_paths(DATABASE_PATH, DEFAULT_OUTPUT_DIR)
+    if repaired_paths:
+        activity.info("imported_document_paths_reconciled count=%d", repaired_paths)
 
     import uvicorn
 
