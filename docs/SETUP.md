@@ -50,6 +50,8 @@ python scripts/migrate.py
 python -m uvicorn backend.app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
+The repository keeps one Alembic baseline for the current schema. On first launch after this consolidation, databases stamped with the earlier `0001`–`0004` revisions are copied to `data/backups/` (or the configured data directory's `backups/` folder), then upgraded while preserving records. Unrecognized revisions stop startup without modifying the database.
+
 ```bash
 cd frontend
 npm run dev

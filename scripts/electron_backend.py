@@ -176,19 +176,16 @@ def main() -> int:
     parser.add_argument("--port", type=int, required=True)
     args = parser.parse_args()
 
-    from alembic import command
-    from alembic.config import Config
-
     from backend.app.config import DATA_DIR, DATABASE_PATH, DEFAULT_OUTPUT_DIR
     from backend.app.logging_config import activity
+    from backend.app.migrations import upgrade_database
 
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     legacy_data_dir = os.environ.get("PHOTO_STUDIO_LEGACY_DATA_DIR", "").strip()
     if legacy_data_dir:
         import_existing_data(Path(legacy_data_dir), DATA_DIR)
     DEFAULT_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    migration_config = Config(str(ROOT / "backend" / "alembic.ini"))
-    command.upgrade(migration_config, "head")
+    upgrade_database()
     repaired_paths = reconcile_document_paths(DATABASE_PATH, DEFAULT_OUTPUT_DIR)
     if repaired_paths:
         activity.info("imported_document_paths_reconciled count=%d", repaired_paths)
