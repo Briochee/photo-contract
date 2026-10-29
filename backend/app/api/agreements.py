@@ -1,6 +1,5 @@
 """Controlled master-agreement records based on the supplied legal source."""
 
-import hashlib
 import json
 from datetime import UTC, date, datetime, time
 
@@ -9,7 +8,6 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from backend.app.config import LEGAL_SOURCE, TEMPLATE_VERSION
 from backend.app.database import get_session
 from backend.app.logging_config import activity
 from backend.app.models import Booking, Client, MasterAgreement, PhotographerProfile
@@ -18,6 +16,7 @@ from backend.app.services.agreement_signing import (
     MAX_SIGNED_AGREEMENT_BYTES,
     store_signed_agreement,
 )
+from backend.app.services.agreement_templates import get_agreement_template
 from backend.app.services.domain import client_values, profile_values, snapshot
 from backend.app.services.references import allocate_reference
 
@@ -25,18 +24,13 @@ router = APIRouter(prefix="/api/agreements", tags=["agreements"])
 
 
 def agreement_text() -> str:
-    """Read the authoritative agreement section, excluding the booking sample and checklist."""
+    """Return the active agreement text, preserving the custom or bundled source as written."""
     try:
-        source = LEGAL_SOURCE.read_text(encoding="utf-8")
+        return get_agreement_template()["content"]
     except OSError as exc:
-        raise HTTPException(503, "The local legal reference file is unavailable") from exc
-    if "\n---\n" not in source:
-        raise HTTPException(500, "The legal reference is missing its agreement boundary")
-    text = source.split("\n---\n", maxsplit=1)[0].rstrip() + "\n"
-    required_sections = [f"## {number}." for number in range(1, 17)]
-    if any(section not in text for section in required_sections):
-        raise HTTPException(500, "The legal reference is missing a required agreement section")
-    return text
+        raise HTTPException(503, "The local agreement template is unavailable") from exc
+    except ValueError as exc:
+        raise HTTPException(500, str(exc)) from exc
 
 
 @router.get("")
@@ -52,8 +46,14 @@ def create_agreement(payload: AgreementInput, session: Session = Depends(get_ses
     client = session.get(Client, payload.client_id)
     if client is None:
         raise HTTPException(404, "Client not found")
-    legal = agreement_text()
-    digest = hashlib.sha256(legal.encode("utf-8")).hexdigest()
+    try:
+        template = get_agreement_template()
+    except OSError as exc:
+        raise HTTPException(503, "The local agreement template is unavailable") from exc
+    except ValueError as exc:
+        raise HTTPException(500, str(exc)) from exc
+    legal = template["content"]
+    digest = template["content_hash"]
     profile = session.scalar(select(PhotographerProfile).order_by(PhotographerProfile.id).limit(1))
     if profile is None:
         raise HTTPException(422, "Complete the photographer profile before creating an agreement")
@@ -66,7 +66,7 @@ def create_agreement(payload: AgreementInput, session: Session = Depends(get_ses
                 photographer_profile_id=profile.id,
                 effective_date=None,
                 status="draft",
-                template_version=TEMPLATE_VERSION,
+                template_version=template["template_version"],
                 legal_text_hash=digest,
                 legal_text_snapshot=legal,
                 source_snapshot_json=snapshot(

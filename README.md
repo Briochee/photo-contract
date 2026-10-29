@@ -32,7 +32,7 @@ python scripts/start.py --open
 - Preview, generate, download, and retain versioned agreement, booking, and invoice PDFs.
 - Back up the SQLite database and generated documents locally.
 
-Money calculations use integer USD cents with decimal-string quantities. Accepted bookings and issued invoices retain snapshots. The supplied agreement in `docs/reference/master_photography_services_agreement.md` remains the legal source; the design vocabulary comes from `docs/reference/resume_design_library.md`.
+Money calculations use integer USD cents with decimal-string quantities. Accepted bookings and issued invoices retain snapshots. The bundled starter agreement is `backend/app/defaults/master_photography_services_agreement.md`; users can upload or edit the active Markdown agreement in Settings without rebuilding the app. Each new agreement snapshots the active text and hash, so existing agreements remain unchanged.
 
 ## Repository Map
 
@@ -41,16 +41,16 @@ backend/app/         FastAPI, SQLAlchemy models, services, templates, and API ro
 backend/alembic/     Database migrations
 backend/tests/       API, pricing, and legal-text regression tests
 frontend/src/        React pages, components, schemas, API client, and styles
-docs/reference/      Project-local legal and visual references
+backend/app/defaults/ Bundled starter agreement, used until a local template is saved
 scripts/             Local startup, migration, import, and restore commands
-data/                Private local database, settings, logs, and generated PDFs
+data/                Private local database, agreement template, settings, logs, and generated PDFs
 examples/            Fictional Playwright-generated agreement, booking, and invoice PDFs
 app.py, core.py      Optional legacy Streamlit sources; dependencies are in legacy/
 ```
 
 ## Existing Data and Privacy
 
-Run `python -m scripts.import_legacy` to import prior `data/BK-*.json` records, the reference counter, and associated PDFs. The importer does not remove its source files; inspect its report before continuing. The application stores client and financial data locally under `PHOTO_STUDIO_DATA_DIR` (default `data/`). Keep this directory, `.env`, and backup archives private and out of commits.
+Run `python -m scripts.import_legacy` to import prior `data/BK-*.json` records, the reference counter, and associated PDFs. The importer does not remove its source files; inspect its report before continuing. The application stores client and financial data locally under `PHOTO_STUDIO_DATA_DIR` (default `data/`). The active Markdown agreement is stored there as `master_agreement_template.md`; backups include it, and clearing all history restores the bundled starter agreement. Keep this directory, `.env`, and backup archives private and out of commits. The root `/assets/` and `/docs/reference/` folders are ignored by Git and are not required to build or run Contract Studio; the tracked `frontend/assets/` icon is still used for app packaging.
 
 ## Sample PDFs
 

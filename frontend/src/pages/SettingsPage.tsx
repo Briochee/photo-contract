@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { ErrorMessage, FieldError, Loading, PageHeader, Panel } from '../components/common/Ui'
@@ -26,7 +26,15 @@ function profileFormValues(profile: Profile): FormInput {
 export function SettingsPage() {
   const queryClient = useQueryClient()
   const settings = useQuery({ queryKey: ['settings'], queryFn: api.settings })
+  const agreementTemplate = useQuery({
+    queryKey: ['agreement-template'],
+    queryFn: () => api.agreementTemplate(),
+  })
   const form = useForm<FormInput, unknown, Values>({ resolver: zodResolver(profileSchema) })
+  const [templateContent, setTemplateContent] = useState<string | null>(null)
+  const [templateFileName, setTemplateFileName] = useState('')
+  const [templateMessage, setTemplateMessage] = useState('')
+  const editorContent = templateContent ?? agreementTemplate.data?.content ?? ''
   useEffect(() => {
     if (settings.data) form.reset(profileFormValues(settings.data.profile))
   }, [settings.data, form])
@@ -42,6 +50,46 @@ export function SettingsPage() {
       await queryClient.invalidateQueries()
     },
   })
+  const saveAgreementTemplate = useMutation({
+    mutationFn: () => api.saveAgreementTemplate(editorContent),
+    onSuccess: async (saved) => {
+      setTemplateContent(saved.content)
+      setTemplateFileName('')
+      setTemplateMessage(`Saved ${saved.template_version}. New agreements will use this version.`)
+      await queryClient.invalidateQueries({ queryKey: ['agreement-template'] })
+    },
+  })
+  const resetAgreementTemplate = useMutation({
+    mutationFn: api.resetAgreementTemplate,
+    onSuccess: async (restored) => {
+      setTemplateContent(restored.content)
+      setTemplateFileName('')
+      setTemplateMessage('The built-in agreement is active again for new agreements.')
+      await queryClient.invalidateQueries({ queryKey: ['agreement-template'] })
+    },
+  })
+
+  const loadAgreementFile = async (file?: File) => {
+    if (!file) return
+    setTemplateMessage('')
+    if (!/\.(md|markdown)$/i.test(file.name)) {
+      setTemplateMessage('Choose a Markdown file ending in .md or .markdown.')
+      return
+    }
+    if (file.size > 1_048_576) {
+      setTemplateMessage('The agreement Markdown file must be 1 MB or smaller.')
+      return
+    }
+    try {
+      const content = new TextDecoder('utf-8', { fatal: true }).decode(await file.arrayBuffer())
+      setTemplateContent(content)
+      setTemplateFileName(file.name)
+      setTemplateMessage(`${file.name} loaded. Save the template to activate it.`)
+    } catch {
+      setTemplateMessage('The selected Markdown file could not be read.')
+    }
+  }
+
   if (settings.isLoading) return <Loading />
   return (
     <>
@@ -51,7 +99,16 @@ export function SettingsPage() {
         description="Defaults apply to new records. Existing agreements, bookings, and invoices keep their saved snapshots."
       />
       <div className="stack">
-        <ErrorMessage error={settings.error || update.error || clearData.error} />
+        <ErrorMessage
+          error={
+            settings.error ||
+            agreementTemplate.error ||
+            update.error ||
+            saveAgreementTemplate.error ||
+            resetAgreementTemplate.error ||
+            clearData.error
+          }
+        />
         <Panel shadow>
           <div className="section-heading">
             <h2>Photographer profile</h2>
@@ -158,6 +215,131 @@ export function SettingsPage() {
         </Panel>
         <Panel>
           <div className="section-heading">
+            <h2>Master agreement template</h2>
+            <span className="eyebrow">Local Markdown</span>
+          </div>
+          <p>
+            Upload your own Markdown agreement or edit the active text here. Saving changes the
+            template for new agreements immediately; existing agreements keep their saved text and
+            PDFs. The template is stored with local application data, so no app rebuild is needed.
+          </p>
+          {agreementTemplate.data ? (
+            <div className="record-banner agreement-template-status">
+              <div>
+                <span className="eyebrow">Active template</span>
+                <strong>
+                  {agreementTemplate.data.source === 'custom' ? 'Custom Markdown' : 'Built-in'}
+                </strong>
+              </div>
+              <span className="muted">Version {agreementTemplate.data.template_version}</span>
+              {agreementTemplate.data.updated_at && (
+                <span className="muted">
+                  Updated {new Date(agreementTemplate.data.updated_at).toLocaleString()}
+                </span>
+              )}
+            </div>
+          ) : agreementTemplate.isLoading ? (
+            <p className="muted">Loading the active agreement template…</p>
+          ) : null}
+          <form
+            className="stack agreement-template-form"
+            onSubmit={(event) => {
+              event.preventDefault()
+              setTemplateMessage('')
+              saveAgreementTemplate.mutate()
+            }}
+          >
+            <div className="field">
+              <label htmlFor="agreement-template-upload">Upload Markdown</label>
+              <input
+                id="agreement-template-upload"
+                type="file"
+                accept=".md,.markdown,text/markdown,text/plain"
+                onChange={(event) => void loadAgreementFile(event.currentTarget.files?.[0])}
+              />
+              <span className="field-hint">
+                Markdown only, up to 1 MB. Uploading fills the editor; press Save to activate it.
+                {templateFileName ? ` Loaded file: ${templateFileName}.` : ''}
+              </span>
+            </div>
+            <div className="field">
+              <label htmlFor="agreement-template-content">Agreement Markdown</label>
+              <textarea
+                id="agreement-template-content"
+                className="agreement-template-editor"
+                rows={22}
+                spellCheck={false}
+                value={editorContent}
+                onChange={(event) => setTemplateContent(event.currentTarget.value)}
+                disabled={!agreementTemplate.data}
+              />
+              <span className="field-hint">
+                Supported data tokens: <code>{'{{photographer_name}}'}</code>,{' '}
+                <code>{'{{photographer_legal_name}}'}</code>,{' '}
+                <code>{'{{photographer_business_name}}'}</code>,{' '}
+                <code>{'{{photographer_address}}'}</code>, <code>{'{{photographer_email}}'}</code>,{' '}
+                <code>{'{{photographer_phone}}'}</code>, <code>{'{{client_legal_name}}'}</code>,{' '}
+                <code>{'{{client_display_name}}'}</code>, <code>{'{{client_address}}'}</code>,{' '}
+                <code>{'{{client_contact_name}}'}</code>, <code>{'{{client_contact_title}}'}</code>,{' '}
+                <code>{'{{client_email}}'}</code>, <code>{'{{client_phone}}'}</code>, and{' '}
+                <code>{'{{agreement_effective_date}}'}</code>. Keep signature terms before a final
+                Signatures heading; Contract Studio places its fillable photographer and client
+                fields on that page. Raw HTML is escaped and Markdown images are omitted in PDFs;
+                use text and tables rather than remote assets.
+              </span>
+            </div>
+            <div className="action-row">
+              <button
+                className="button button--primary"
+                disabled={
+                  !agreementTemplate.data ||
+                  !editorContent.trim() ||
+                  saveAgreementTemplate.isPending ||
+                  resetAgreementTemplate.isPending
+                }
+              >
+                {saveAgreementTemplate.isPending ? 'Saving template…' : 'Save active agreement'}
+              </button>
+              <button
+                className="button"
+                type="button"
+                disabled={
+                  resetAgreementTemplate.isPending ||
+                  saveAgreementTemplate.isPending ||
+                  !agreementTemplate.data ||
+                  (agreementTemplate.data.source === 'bundled' &&
+                    editorContent === agreementTemplate.data.content)
+                }
+                onClick={() => {
+                  if (agreementTemplate.data?.source === 'bundled') {
+                    setTemplateContent(agreementTemplate.data.content)
+                    setTemplateMessage('Unsaved edits were discarded.')
+                  } else if (
+                    window.confirm(
+                      'Restore the built-in master agreement for future agreements? Existing agreements will keep their saved text.',
+                    )
+                  ) {
+                    setTemplateMessage('')
+                    resetAgreementTemplate.mutate()
+                  }
+                }}
+              >
+                {resetAgreementTemplate.isPending
+                  ? 'Restoring…'
+                  : agreementTemplate.data?.source === 'custom'
+                    ? 'Restore built-in template'
+                    : 'Discard unsaved edits'}
+              </button>
+            </div>
+          </form>
+          {templateMessage && (
+            <p className="inline-note" role="status">
+              {templateMessage}
+            </p>
+          )}
+        </Panel>
+        <Panel>
+          <div className="section-heading">
             <h2>Local storage</h2>
             <span className="eyebrow">No cloud sync</span>
           </div>
@@ -190,8 +372,8 @@ export function SettingsPage() {
             <span className="eyebrow">Local archive</span>
           </div>
           <p>
-            A backup includes a transaction-consistent SQLite copy, local settings, legacy records,
-            and generated PDFs.
+            A backup includes a transaction-consistent SQLite copy, the active agreement template,
+            local settings, legacy records, and generated PDFs.
           </p>
           <a className="button" href="/api/settings/backup">
             Download data backup
@@ -209,10 +391,11 @@ export function SettingsPage() {
           </div>
           <p>
             Remove all clients, contracts, bookings, invoices, payments, saved PDFs, photographer
-            profile details, application preferences, and imported legacy records. Existing
-            activity logs are cleared. Reference counters remain so previously used references are
-            never reused. This only affects the configured Contract Studio data folder; backups
-            and original source files stored elsewhere remain untouched.
+            profile details, the custom agreement template, application preferences, and imported
+            legacy records. Existing activity logs are cleared and the built-in agreement becomes
+            active again. Reference counters remain so previously used references are never reused.
+            This only affects the configured Contract Studio data folder; backups and original
+            source files stored elsewhere remain untouched.
           </p>
           <button
             className="button button--danger"
@@ -220,7 +403,7 @@ export function SettingsPage() {
             disabled={clearData.isPending || update.isPending}
             onClick={() => {
               const confirmed = window.confirm(
-                'This is irreversible.\n\nThis permanently removes all clients, contracts, bookings, invoices, payments, saved PDFs, your photographer profile, application preferences, imported legacy records, and existing activity logs from the configured Contract Studio data folder. Reference counters stay in place so previously used references are never reused. Download a backup first. Backups and original source files stored elsewhere are not affected.\n\nClear all history and data now?',
+                'This is irreversible.\n\nThis permanently removes all clients, contracts, bookings, invoices, payments, saved PDFs, your photographer profile, the custom agreement template, application preferences, imported legacy records, and existing activity logs from the configured Contract Studio data folder. The built-in agreement becomes active again. Reference counters stay in place so previously used references are never reused. Download a backup first. Backups and original source files stored elsewhere are not affected.\n\nClear all history and data now?',
               )
               if (confirmed) clearData.mutate()
             }}
@@ -247,7 +430,7 @@ export function SettingsPage() {
               {clearData.data.local_files_cleared &&
               clearData.data.database_compacted &&
               clearData.data.logs_cleared
-                ? 'Local records, documents, settings, and activity logs have been cleared. Reference counters were retained.'
+                ? 'Local records, documents, settings, and activity logs have been cleared. The built-in agreement is active; reference counters were retained.'
                 : 'Records were cleared, but some local files, database space, or logs could not be fully removed. Close other Contract Studio windows and retry the reset.'}
             </p>
           )}

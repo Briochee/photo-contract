@@ -232,4 +232,8 @@ __marimo__/
 /logs/
 /release/
 
+# Private source material and local visual/legal reference documents.
+/assets/
+/docs/reference/
+
 .DS_Store

@@ -13,12 +13,60 @@ from backend.app.config import DEFAULT_OUTPUT_DIR
 from backend.app.database import get_session
 from backend.app.logging_config import activity
 from backend.app.models import AppSetting, PhotographerProfile
-from backend.app.schemas import ClearAllDataInput, ProfileInput
+from backend.app.schemas import (
+    AgreementTemplateInput,
+    AgreementTemplateOutput,
+    ClearAllDataInput,
+    ProfileInput,
+)
+from backend.app.services.agreement_templates import (
+    get_agreement_template,
+    reset_agreement_template,
+    save_agreement_template,
+)
 from backend.app.services.backup import create_backup, remove_backup
 from backend.app.services.data_reset import DataResetError, clear_application_data
 from backend.app.services.domain import profile_values, set_profile
 
 router = APIRouter(prefix="/api/settings", tags=["settings"])
+
+
+@router.get("/agreement-template", response_model=AgreementTemplateOutput)
+def get_agreement_template_route():
+    try:
+        return get_agreement_template()
+    except OSError as exc:
+        raise HTTPException(503, "The local agreement template could not be read") from exc
+    except ValueError as exc:
+        raise HTTPException(500, str(exc)) from exc
+
+
+@router.put("/agreement-template", response_model=AgreementTemplateOutput)
+def update_agreement_template_route(payload: AgreementTemplateInput):
+    try:
+        result = save_agreement_template(payload.content)
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    except OSError as exc:
+        activity.error("agreement_template_save_failed error=%s", type(exc).__name__)
+        raise HTTPException(503, "The agreement template could not be saved locally") from exc
+    activity.info(
+        "agreement_template_updated version=%s hash=%s",
+        result["template_version"],
+        result["content_hash"],
+    )
+    return result
+
+
+@router.delete("/agreement-template", response_model=AgreementTemplateOutput)
+def reset_agreement_template_route():
+    try:
+        result = reset_agreement_template()
+    except (OSError, ValueError) as exc:
+        activity.error("agreement_template_reset_failed error=%s", type(exc).__name__)
+        raise HTTPException(503, "The bundled agreement template could not be restored") from exc
+    activity.info("agreement_template_reset_to_bundled version=%s", result["template_version"])
+    return result
 
 
 @router.get("/backup", include_in_schema=True)

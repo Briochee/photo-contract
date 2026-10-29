@@ -266,8 +266,8 @@ def main() -> int:
         ("backend/alembic.ini", "backend"),
         ("frontend/dist", "frontend/dist"),
         (
-            "docs/reference/master_photography_services_agreement.md",
-            "docs/reference",
+            "backend/app/defaults/master_photography_services_agreement.md",
+            "backend/app/defaults",
         ),
     ]
     freezer_command = [

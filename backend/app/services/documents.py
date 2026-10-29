@@ -39,6 +39,11 @@ from backend.app.services.pdf_forms import add_pdf_form_fields
 
 DocumentType = Literal["agreement", "booking_confirmation", "invoice"]
 _REFERENCE = re.compile(r"^[A-Z]{2,4}-\d{4}-\d{3,}$")
+_SIGNATURE_HEADING = re.compile(
+    r"(?mi)^(?P<heading>#{1,6}[ \t]+(?:\d+(?:\.\d+)*[.)]?[ \t]+)?signatures?\b[^\n]*)$"
+)
+_SIGNER_MARKER = re.compile(r"(?mi)^\*\*(?:photographer|client):?\*\*[ \t]*$")
+_AGREEMENT_TOKEN = re.compile(r"\{\{\s*([a-zA-Z0-9_]+)\s*\}\}")
 _PDF_MARGIN_POINTS = {
     "top": 0.85 * 72,
     "right": 0.78 * 72,
@@ -73,8 +78,12 @@ def document_context(
         if agreement is None:
             raise LookupError("Agreement not found")
         source = json.loads(agreement.source_snapshot_json)
+        source["effective_date"] = (
+            agreement.effective_date.isoformat() if agreement.effective_date else ""
+        )
         legal = agreement.legal_text_snapshot
         legal = _substitute_header_lines(legal, source)
+        legal = _substitute_agreement_tokens(legal, source)
         legal_html = _agreement_html(legal, source)
         context = {
             "title": "Master Photography Services Agreement",
@@ -273,18 +282,24 @@ def render_pdf(document_type: DocumentType, context: dict[str, Any]) -> bytes:
 
 
 def _agreement_html(legal: str, snapshot_data: dict[str, Any]) -> str:
-    """Render the authoritative legal copy and format its signature block as a fillable page."""
-    heading = "## 16. Signatures"
-    if heading not in legal:
-        raise ValueError("The agreement source is missing its signature section")
-    agreement_body, signature_section = legal.split(heading, maxsplit=1)
-    signature_prose, signer_placeholder = signature_section.split("**Photographer**", maxsplit=1)
-    if "**Client**" not in signer_placeholder:
-        raise ValueError("The agreement source is missing a client signature block")
+    """Render Markdown while keeping the final signature section on a fillable page."""
+    markdown = MarkdownIt("commonmark", {"html": False, "typographer": False}).disable("image")
+    headings = list(_SIGNATURE_HEADING.finditer(legal))
+    if headings:
+        heading = headings[-1]
+        agreement_body = legal[: heading.start()]
+        signature_section = legal[heading.start() :]
+        section_markers = list(_SIGNER_MARKER.finditer(signature_section))
+        if len(section_markers) >= 2:
+            signature_prose = signature_section[: section_markers[0].start()]
+        else:
+            signature_prose = signature_section
+        body_html = markdown.render(agreement_body)
+        signature_intro = markdown.render(signature_prose)
+    else:
+        body_html = markdown.render(legal)
+        signature_intro = markdown.render("## Signatures")
 
-    markdown = MarkdownIt("commonmark", {"html": False, "typographer": False})
-    body_html = markdown.render(agreement_body)
-    signature_intro = markdown.render(f"{heading}{signature_prose}")
     photographer = snapshot_data.get("photographer", {})
     client = snapshot_data.get("client", {})
     signature_fields = _JINJA.get_template("agreement_signatures.html").render(
@@ -299,6 +314,34 @@ def _agreement_html(legal: str, snapshot_data: dict[str, Any]) -> str:
         + signature_fields
         + "</section>"
     )
+
+
+def _substitute_agreement_tokens(source: str, snapshot_data: dict[str, Any]) -> str:
+    """Replace only documented scalar tokens, escaping values before Markdown parsing."""
+    photographer = snapshot_data.get("photographer", {})
+    client = snapshot_data.get("client", {})
+    values = {
+        "photographer_name": _person_name(photographer),
+        "photographer_legal_name": _plain_text(photographer.get("legal_name")),
+        "photographer_business_name": _plain_text(photographer.get("business_name")),
+        "photographer_address": _plain_text(photographer.get("mailing_address")),
+        "photographer_email": _plain_text(photographer.get("email")),
+        "photographer_phone": _plain_text(photographer.get("phone")),
+        "client_legal_name": _plain_text(client.get("legal_name")),
+        "client_display_name": _plain_text(client.get("display_name")),
+        "client_address": _plain_text(client.get("mailing_address")),
+        "client_contact_name": _plain_text(client.get("primary_contact_name")),
+        "client_contact_title": _plain_text(client.get("primary_contact_title")),
+        "client_email": _plain_text(client.get("contact_email")),
+        "client_phone": _plain_text(client.get("contact_phone")),
+        "agreement_effective_date": _plain_text(snapshot_data.get("effective_date")),
+    }
+
+    def replace(match: re.Match[str]) -> str:
+        value = values.get(match.group(1).casefold())
+        return match.group(0) if value is None else _md_text(value)
+
+    return _AGREEMENT_TOKEN.sub(replace, source)
 
 
 def generate_document(

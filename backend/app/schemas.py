@@ -15,6 +15,18 @@ class ClearAllDataInput(APIModel):
     confirmation: Literal["CLEAR_ALL_DATA"]
 
 
+class AgreementTemplateInput(APIModel):
+    content: str = Field(min_length=1, max_length=1_048_576)
+
+
+class AgreementTemplateOutput(APIModel):
+    content: str
+    template_version: str = Field(max_length=32)
+    content_hash: str = Field(min_length=64, max_length=64)
+    source: Literal["bundled", "custom"]
+    updated_at: str | None = None
+
+
 class ClientInput(APIModel):
     legal_name: str = Field(min_length=1, max_length=200)
     display_name: str | None = Field(default=None, max_length=200)

@@ -20,12 +20,17 @@ ENV.filters['dollars'] = dollars
 
 
 def contract_html(record):
-    original = (ROOT / 'assets' / 'contract_source.md').read_text(encoding='utf-8')
+    original = (
+        ROOT
+        / 'backend'
+        / 'app'
+        / 'defaults'
+        / 'master_photography_services_agreement.md'
+    ).read_text(encoding='utf-8')
     # Preserve all clauses verbatim. Only the Master section belongs in this PDF.
     master = original.split('\n---\n', 1)[0]
     # Replace strictly identified source placeholders only; do not edit legal provisions.
     replacements = {
-        '**Effective Date:** [Date]': f'**Effective Date:** {record["agreement_date"]}',
         '**Photographer:** [Legal name / business name]': f'**Photographer:** {record["photographer"]}',
         '**Address:** [Address]': f'**Address:** {record["photographer_address"]}',
         '**Email:** [Email]': f'**Email:** {record["photographer_email"]}',

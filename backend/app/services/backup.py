@@ -20,7 +20,7 @@ def create_backup() -> Path:
     staging.mkdir()
     try:
         for source in DATA_DIR.rglob("*"):
-            if not source.is_file() or temporary_root in source.parents:
+            if source.is_symlink() or not source.is_file() or temporary_root in source.parents:
                 continue
             relative = source.relative_to(DATA_DIR)
             if source.name.endswith(("-wal", "-shm")):
@@ -37,7 +37,13 @@ def create_backup() -> Path:
             "application": "Contract Studio",
             "created_at": datetime.now(UTC).isoformat(),
             "database_file": DATABASE_PATH.name,
-            "includes": ["SQLite databases", "settings", "legacy records", "generated documents"],
+            "includes": [
+                "SQLite databases",
+                "settings",
+                "master agreement template",
+                "legacy records",
+                "generated documents",
+            ],
         }
         (staging / "backup_manifest.json").write_text(
             json.dumps(manifest, indent=2), encoding="utf-8"

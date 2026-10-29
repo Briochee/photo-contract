@@ -188,6 +188,14 @@ export type Settings = {
   preferences: { pdf_page_size: string }
 }
 
+export type AgreementTemplate = {
+  content: string
+  template_version: string
+  content_hash: string
+  source: 'bundled' | 'custom'
+  updated_at: string | null
+}
+
 export type DataResetResult = {
   local_files_cleared: boolean
   database_compacted: boolean

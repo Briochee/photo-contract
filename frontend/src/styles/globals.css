@@ -188,6 +188,13 @@ h3 {
   min-height: 92px;
   resize: vertical;
 }
+.field .agreement-template-editor {
+  min-height: 30rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  tab-size: 2;
+}
 .field input:focus,
 .field select:focus,
 .field textarea:focus {

@@ -1,5 +1,6 @@
 import type {
   Agreement,
+  AgreementTemplate,
   Booking,
   BookingPayload,
   Client,
@@ -126,6 +127,11 @@ export const api = {
   deleteAgreement: (id: number) => request<void>(`/api/agreements/${id}`, json('DELETE')),
   settings: () => request<Settings>('/api/settings'),
   updateSettings: (value: Profile) => request<Settings>('/api/settings', json('PATCH', value)),
+  agreementTemplate: () => request<AgreementTemplate>('/api/settings/agreement-template'),
+  saveAgreementTemplate: (content: string) =>
+    request<AgreementTemplate>('/api/settings/agreement-template', json('PUT', { content })),
+  resetAgreementTemplate: () =>
+    request<AgreementTemplate>('/api/settings/agreement-template', json('DELETE')),
   clearAllData: () =>
     request<DataResetResult>(
       '/api/settings/data',

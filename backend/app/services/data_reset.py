@@ -9,7 +9,7 @@ from sqlalchemy import delete, text
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 
-from backend.app.config import DATA_DIR, DEFAULT_OUTPUT_DIR
+from backend.app.config import ACTIVE_AGREEMENT_TEMPLATE, DATA_DIR, DEFAULT_OUTPUT_DIR
 from backend.app.logging_config import clear_log_history
 from backend.app.models import (
     AdditionalExpense,
@@ -73,6 +73,7 @@ def clear_application_data(session: Session) -> dict[str, bool]:
     document_root_created = False
     try:
         quarantine.mkdir()
+        _stage_path(ACTIVE_AGREEMENT_TEMPLATE, quarantine / ACTIVE_AGREEMENT_TEMPLATE.name, staged)
         _stage_path(document_root, quarantine / "documents", staged)
         document_root.mkdir(parents=True, exist_ok=True)
         document_root_created = True

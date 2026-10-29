@@ -18,5 +18,8 @@ DATABASE_URL = f"sqlite:///{DATABASE_PATH.as_posix()}"
 DEFAULT_OUTPUT_DIR = DATA_DIR / "documents"
 FRONTEND_DIST = PROJECT_ROOT / "frontend" / "dist"
 TEMPLATES_DIR = Path(__file__).resolve().parent / "templates"
-LEGAL_SOURCE = PROJECT_ROOT / "docs" / "reference" / "master_photography_services_agreement.md"
+LEGAL_SOURCE = (
+    Path(__file__).resolve().parent / "defaults" / "master_photography_services_agreement.md"
+)
+ACTIVE_AGREEMENT_TEMPLATE = DATA_DIR / "master_agreement_template.md"
 TEMPLATE_VERSION = "1.1.0"

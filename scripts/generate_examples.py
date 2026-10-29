@@ -1,6 +1,5 @@
 """Generate fictional sample PDFs through the production document renderer."""
 
-import hashlib
 from datetime import UTC, date, datetime
 from pathlib import Path
 
@@ -8,8 +7,6 @@ from sqlalchemy import create_engine, event
 from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
-from backend.app.api.agreements import agreement_text
-from backend.app.config import TEMPLATE_VERSION
 from backend.app.models import (
     AdditionalExpense,
     Base,
@@ -22,6 +19,7 @@ from backend.app.models import (
     PhotographerProfile,
 )
 from backend.app.services import documents
+from backend.app.services.agreement_templates import get_agreement_template
 from backend.app.services.documents import document_context
 from backend.app.services.domain import (
     booking_values,
@@ -79,15 +77,16 @@ def main() -> None:
         session.flush()
 
         effective_date = date(2026, 10, 28)
-        legal_text = agreement_text()
+        template = get_agreement_template()
+        legal_text = template["content"]
         agreement = MasterAgreement(
             agreement_ref="AGR-2026-001",
             client_id=client.id,
             photographer_profile_id=profile.id,
             effective_date=effective_date,
             status="accepted",
-            template_version=TEMPLATE_VERSION,
-            legal_text_hash=hashlib.sha256(legal_text.encode("utf-8")).hexdigest(),
+            template_version=template["template_version"],
+            legal_text_hash=template["content_hash"],
             legal_text_snapshot=legal_text,
             source_snapshot_json=snapshot(
                 {

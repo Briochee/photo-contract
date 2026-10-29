@@ -1,4 +1,4 @@
-Version: 25
+Version: 26
 
 # Repository Guidelines
 
@@ -9,8 +9,8 @@ Contract Studio manages local clients, agreements, bookings, invoices, and PDFs.
 ## Project References
 
 - Read [docs/SETUP.md](docs/SETUP.md) for supported tools, setup, startup, testing, data paths, migration, and backup commands.
-- The authoritative legal source is [docs/reference/master_photography_services_agreement.md](docs/reference/master_photography_services_agreement.md); keep its substantive wording unchanged and exclude the booking specimen and internal checklist from agreement PDFs.
-- Follow [docs/reference/resume_design_library.md](docs/reference/resume_design_library.md) for local-first font use, paper/charcoal colors, burgundy accents, square edges, and restrained hard shadows.
+- The bundled starter agreement is [backend/app/defaults/master_photography_services_agreement.md](backend/app/defaults/master_photography_services_agreement.md). Settings can replace or edit active Markdown under `PHOTO_STUDIO_DATA_DIR`; each agreement stores a text snapshot and content hash so existing agreements never change.
+- The local `assets/` and `docs/reference/` directories are ignored and untracked. Do not make runtime or packaging depend on them; keep design tokens in the frontend and bundled fallback resources in the app package.
 - Keep runtime records and PDFs under the configurable `PHOTO_STUDIO_DATA_DIR` (default `data/`). Never commit client data, secrets, or generated records.
 
 ## Development Conventions
@@ -29,7 +29,9 @@ Client detail pages may delete an agreement only when no booking references it. 
 
 Only unaccepted draft or pending bookings may be deleted. Delete their unpaid draft invoices with them and detach, but preserve, generated PDFs; retain finalized bookings and bookings with issued invoices or payment records. Keep reference sequences intact so deleted references are never reused.
 
-Settings may clear all local business records, profile/preferences, generated PDFs, imported legacy files, and logs only after explicit confirmation. Keep reference sequences to prevent reusing identifiers and never remove backups or original source files outside the configured data directory.
+Settings may clear all local business records, profile/preferences, the custom agreement template, generated PDFs, imported legacy files, and logs only after explicit confirmation; then the bundled agreement becomes active again. Keep reference sequences to prevent reusing identifiers and never remove backups or original source files outside the configured data directory.
+
+Agreement Markdown is limited to 1 MB, stored privately and atomically at `PHOTO_STUDIO_DATA_DIR/master_agreement_template.md`, included in backups, and removed by the confirmed data reset. Replace only documented scalar tokens; never evaluate uploaded Markdown as Jinja or raw HTML. Keep the bundled default in `backend/app/defaults/` and include it in Electron packaging.
 
 The document library can delete a saved PDF and its library record while retaining the related client, booking, agreement, or invoice. Confirm permanent file removal. Draft invoices may be prepared and issued before acceptance evidence is recorded; issuing an invoice never marks contractual acceptance. Saved agreement and booking PDFs remain pending until written acceptance is recorded; previews remain drafts. Issued invoice snapshots are immutable and corrected through replacement revisions.
 
