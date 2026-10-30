@@ -1,4 +1,4 @@
 -r ../requirements.txt
-streamlit>=1.39,<2
+streamlit>=1.66.1,<2
 pandas>=2.2,<3
 Markdown>=3.7,<4
