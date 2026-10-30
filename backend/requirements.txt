@@ -5,6 +5,6 @@ SQLAlchemy>=2.0,<3
 alembic>=1.14,<2
 python-dotenv>=1.0,<2
 Jinja2>=3.1,<4
-markdown-it-py>=3,<5
+markdown-it-py>=4.2.0,<5
 playwright>=1.50,<2
 pypdf>=5,<7
