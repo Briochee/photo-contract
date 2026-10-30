@@ -15,7 +15,8 @@ updates:
           - minor
           - patch
 
-  # The root requirements files include the backend and packaging dependencies.
+  # One root pip scan covers nested requirements and their -r includes. Keep it as the only
+  # pip update scope to avoid duplicate PRs for backend and legacy requirements.
   - package-ecosystem: pip
     directory: /
     schedule:
@@ -26,22 +27,6 @@ updates:
     open-pull-requests-limit: 5
     groups:
       pip-minor-and-patch:
-        applies-to: version-updates
-        update-types:
-          - minor
-          - patch
-
-  # Keep the optional Streamlit fallback dependencies up to date separately.
-  - package-ecosystem: pip
-    directory: /legacy
-    schedule:
-      interval: weekly
-      day: monday
-      time: "09:00"
-      timezone: America/New_York
-    open-pull-requests-limit: 5
-    groups:
-      legacy-pip-minor-and-patch:
         applies-to: version-updates
         update-types:
           - minor
