@@ -17,7 +17,24 @@ li { margin: 3px 0; }
 .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px 25px; }
 .detail-grid p { margin: 3px 0; }
 .label { font-size: 7.7pt; }
-.block-copy { padding: 9px 11px; border-left: 3px solid #72283a; background: #f1f2ef; white-space: pre-wrap; }
+.block-copy { padding: 9px 11px; border-left: 3px solid #72283a; background: #f1f2ef; }
+.booking-markdown > :first-child { margin-top: 0; }
+.booking-markdown > :last-child { margin-bottom: 0; }
+.booking-markdown p { margin: 4px 0 7px; }
+.booking-markdown ul, .booking-markdown ol { margin: 4px 0 7px; padding-left: 18px; }
+.booking-markdown li { margin: 2px 0; }
+.booking-markdown h1,
+.booking-markdown h2,
+.booking-markdown h3,
+.booking-markdown h4,
+.booking-markdown h5,
+.booking-markdown h6 { margin: 8px 0 4px; padding: 0; border: 0; font-size: 10pt; line-height: 1.25; letter-spacing: 0; }
+.booking-markdown blockquote { margin: 6px 0; padding-left: 10px; border-left: 2px solid #72283a; color: #66645d; }
+.booking-markdown pre { margin: 5px 0; padding: 6px 8px; background: #f1f2ef; white-space: pre-wrap; overflow-wrap: anywhere; }
+.booking-markdown code { font-family: Consolas, "Courier New", monospace; font-size: .92em; }
+.booking-markdown table { margin: 5px 0; table-layout: auto; }
+.booking-markdown th, .booking-markdown td { padding: 4px 5px; }
+.booking-expense-notes { margin-top: 4px; }
 table { width: 100%; border-collapse: collapse; margin: 8px 0 0; table-layout: fixed; }
 th { padding: 7px 6px; border-bottom: 2px solid #24241f; background: #f1f2ef; text-align: left; font-size: 8pt; text-transform: uppercase; letter-spacing: .06em; }
 td { padding: 8px 6px; border-bottom: 1px solid rgba(36,36,31,.18); vertical-align: top; overflow-wrap: anywhere; }

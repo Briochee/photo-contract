@@ -134,6 +134,10 @@ def document_context(
             *data["line_items"],
             *[{**item, "is_additional_expense": True} for item in approved],
         ]
+        for item in pricing_items:
+            item["description_html"] = _render_markdown_html(item.get("description"))
+            if item.get("is_additional_expense"):
+                item["notes_html"] = _render_markdown_html(item.get("notes"))
         context = {
             **data,
             "title": "Booking Confirmation",
@@ -153,6 +157,9 @@ def document_context(
                 else "Draft preview"
             ),
             "pricing_items": pricing_items,
+            "scope_html": _render_markdown_html(data.get("scope")),
+            "special_deliverables_html": _render_markdown_html(data.get("special_deliverables")),
+            "exceptions_html": _render_markdown_html(data.get("exceptions")),
             "total_agreed_cents": sum(item["amount_cents"] for item in pricing_items),
             "invoice_reference": _current_invoice_reference(booking),
         }
@@ -507,6 +514,16 @@ def _contact_name(client: dict[str, Any]) -> str:
 def _plain_text(value: object) -> str:
     """Convert optional snapshot values to display text without leaking object representations."""
     return value.strip() if isinstance(value, str) else ""
+
+
+def _render_markdown_html(value: object) -> Markup:
+    """Render user-authored CommonMark while escaping HTML and suppressing embedded images."""
+    text = _plain_text(value)
+    if not text:
+        return Markup("")
+    markdown = MarkdownIt("commonmark", {"html": False, "typographer": False}).enable("table")
+    markdown.renderer.rules["image"] = _omit_markdown_image
+    return Markup(markdown.render(text))
 
 
 def _md_text(value: object) -> str:

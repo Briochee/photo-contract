@@ -142,6 +142,8 @@ Master agreements move from draft to pending when their PDF is saved to the docu
 
 Booking confirmations follow the same lifecycle: the booking remains a draft until its confirmation PDF is saved, then becomes pending until written acceptance is recorded, which finalizes it. Draft invoices can be created and issued from any saved booking before acceptance; issuing an invoice does not finalize the booking.
 
+Booking confirmation text supports standard Markdown in scope and priorities, special deliverables, exceptions, line-item descriptions, and notes on approved expenses. Common formatting includes bold, italics, headings, lists, quotes, links, and tables. Raw HTML is escaped and Markdown images are omitted so text cannot load external or local resources. Expense notes appear in the confirmation only for approved expenses.
+
 ## Sample Documents
 
 The `examples/` directory contains fictional Chromium-generated agreement, booking, and invoice PDFs. To recreate them, move the existing PDFs out of that directory, then run:

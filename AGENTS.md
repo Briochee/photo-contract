@@ -1,4 +1,4 @@
-Version: 26
+Version: 27
 
 # Repository Guidelines
 
@@ -24,6 +24,8 @@ Keep one Alembic baseline matching the current SQLite schema. Route desktop and 
 Photographer business name and profile-level rates, payment terms, delivery method, and delivery deadline are optional. Keep blank values nullable across the API, database, and settings form; booking-level data remains authoritative once saved.
 
 Bookings support any photography session or event. Keep event types free-form, with suggestions for personal, wedding, portrait, celebration, and corporate work. Place field help below controls and align labels so helper text does not shift form inputs.
+
+Booking confirmation narrative fields (scope, special deliverables, exceptions, line item descriptions, and approved expense notes) render safe Markdown. Escape raw HTML and omit Markdown images; proposed-expense notes are not included in the confirmation.
 
 Client detail pages may delete an agreement only when no booking references it. Keep generated PDF copies in the document library after deleting the agreement record.
 

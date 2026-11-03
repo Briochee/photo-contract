@@ -420,6 +420,10 @@ export function BookingEditorPage() {
                 <div className="field field--wide">
                   <label htmlFor="scope">Scope and priorities</label>
                   <textarea id="scope" {...form.register('scope')} />
+                  <small className="field-hint">
+                    Markdown is formatted in the booking confirmation. Use **bold**, *italic*,
+                    lists, headings, quotes, or links.
+                  </small>
                 </div>
                 <div className="field">
                   <label htmlFor="delivery_method">Delivery method</label>
@@ -443,6 +447,9 @@ export function BookingEditorPage() {
                 <div className="field">
                   <label htmlFor="special_deliverables">Special deliverables</label>
                   <textarea id="special_deliverables" {...form.register('special_deliverables')} />
+                  <small className="field-hint">
+                    Markdown formatting appears in the booking confirmation.
+                  </small>
                 </div>
               </div>
             </Panel>
@@ -467,7 +474,8 @@ export function BookingEditorPage() {
               </div>
               <p className="inline-note">
                 These charges appear on the booking confirmation and invoice. Finalized pricing
-                requires a documented amendment to change.
+                requires a documented amendment to change. Item descriptions support Markdown in the
+                booking confirmation.
               </p>
               <div className="line-list" role="group" aria-label="Agreed booking line items">
                 <div className="line-row line-row--head">
@@ -662,6 +670,9 @@ export function BookingEditorPage() {
                         id={`expense-notes-${index}`}
                         {...form.register(`additional_expenses.${index}.notes`)}
                       />
+                      <small className="field-hint">
+                        Approved expense notes are formatted in the booking confirmation.
+                      </small>
                     </div>
                   </div>
                   <div className="expense-footer">
@@ -706,7 +717,8 @@ export function BookingEditorPage() {
                   <label htmlFor="exceptions">Exceptions to master agreement</label>
                   <textarea id="exceptions" {...form.register('exceptions')} />
                   <small className="field-hint">
-                    Identify the affected section and replacement terms.
+                    Identify the affected section and replacement terms. Markdown is formatted in
+                    the booking confirmation.
                   </small>
                 </div>
               </div>
