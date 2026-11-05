@@ -10,7 +10,13 @@ from sqlalchemy.orm import Session
 
 from backend.app.database import get_session
 from backend.app.logging_config import activity
-from backend.app.models import Booking, Client, MasterAgreement, PhotographerProfile
+from backend.app.models import (
+    Booking,
+    Client,
+    GeneratedDocument,
+    MasterAgreement,
+    PhotographerProfile,
+)
 from backend.app.schemas import AgreementFinalizeInput, AgreementInput
 from backend.app.services.agreement_signing import (
     MAX_SIGNED_AGREEMENT_BYTES,
@@ -104,6 +110,26 @@ def delete_agreement(agreement_id: int, session: Session = Depends(get_session))
     if booking_id is not None:
         raise HTTPException(409, "This agreement is linked to a booking and cannot be deleted")
     try:
+        uploaded_files = session.scalars(
+            select(GeneratedDocument).where(
+                GeneratedDocument.client_id == agreement.client_id,
+                GeneratedDocument.document_type == "uploaded_file",
+            )
+        ).all()
+        for document in uploaded_files:
+            try:
+                metadata = json.loads(document.source_snapshot_json)
+            except (TypeError, ValueError):
+                continue
+            if (
+                isinstance(metadata, dict)
+                and metadata.get("related_entity_type") == "agreement"
+                and metadata.get("related_entity_id") == agreement_id
+            ):
+                metadata["related_entity_type"] = None
+                metadata["related_entity_id"] = None
+                metadata["related_reference"] = None
+                document.source_snapshot_json = json.dumps(metadata, separators=(",", ":"))
         session.delete(agreement)
         session.commit()
     except IntegrityError as exc:
@@ -147,13 +173,11 @@ async def upload_signed_copy(
     filename: str = Query(min_length=1, max_length=255),
     session: Session = Depends(get_session),
 ):
-    """Upload a PDF body, save it as a new library version, and finalize the agreement."""
+    """Save a signed PDF version, finalizing pending agreements and preserving finalized ones."""
     agreement = session.get(MasterAgreement, agreement_id)
     if agreement is None:
         raise HTTPException(404, "Agreement not found")
-    if agreement.status == "finalized":
-        raise HTTPException(409, "This contract has already been finalized")
-    if agreement.status not in {"draft", "pending"}:
+    if agreement.status not in {"accepted", "finalized", "draft", "pending"}:
         raise HTTPException(409, "This contract cannot be finalized from its current status")
 
     content_type = request.headers.get("content-type", "").split(";", maxsplit=1)[0].strip()

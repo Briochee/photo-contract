@@ -178,6 +178,25 @@ def delete_booking(booking_id: int, session: Session = Depends(get_session)) -> 
         for document in documents:
             document.booking_id = None
             document.invoice_id = None
+            if document.document_type == "uploaded_file":
+                try:
+                    metadata = json.loads(document.source_snapshot_json)
+                except (TypeError, ValueError):
+                    metadata = None
+                if (
+                    isinstance(metadata, dict)
+                    and metadata.get("related_entity_type") in {"booking", "invoice"}
+                    and (
+                        metadata.get("related_entity_type") == "booking"
+                        and metadata.get("related_entity_id") == booking_id
+                        or metadata.get("related_entity_type") == "invoice"
+                        and metadata.get("related_entity_id") in invoice_ids
+                    )
+                ):
+                    metadata["related_entity_type"] = None
+                    metadata["related_entity_id"] = None
+                    metadata["related_reference"] = None
+                    document.source_snapshot_json = json.dumps(metadata, separators=(",", ":"))
         for invoice in invoices:
             session.delete(invoice)
         session.flush()
@@ -259,7 +278,7 @@ async def upload_signed_confirmation(
     filename: str = Query(min_length=1, max_length=255),
     session: Session = Depends(get_session),
 ):
-    """Store a signed booking confirmation as an immutable library version and finalize it."""
+    """Store a signed confirmation version and preserve or create booking finalization."""
     content_type = request.headers.get("content-type", "").split(";", maxsplit=1)[0].strip()
     if content_type.casefold() != "application/pdf":
         raise HTTPException(415, "Upload the signed booking confirmation as a PDF")

@@ -5,6 +5,7 @@ import { useFieldArray, useForm, useWatch } from 'react-hook-form'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { z } from 'zod'
 import { PdfPreview } from '../components/common/PdfPreview'
+import { RelatedDocumentUpload } from '../components/common/RelatedDocumentUpload'
 import {
   ErrorMessage,
   FieldError,
@@ -621,6 +622,11 @@ export function InvoiceEditorPage() {
               </p>
             )}
             {lastGeneratedName && <p role="status">{lastGeneratedName}</p>}
+            <RelatedDocumentUpload
+              key={`invoice:${invoice.id}`}
+              entityType="invoice"
+              entityId={invoice.id}
+            />
             {invoice.record_status === 'issued' && invoice.is_current && (
               <div className="payment-panel">
                 <h3>Record a payment</h3>

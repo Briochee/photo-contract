@@ -1,4 +1,4 @@
-Version: 29
+Version: 30
 
 # Repository Guidelines
 
@@ -31,19 +31,19 @@ Client detail agreement summaries include `acceptance_reference` so finalized up
 
 Client detail pages may delete an agreement only when no booking references it. Keep generated PDF copies in the document library after deleting the agreement record.
 
-Only unaccepted draft or pending bookings may be deleted. Delete their unpaid draft invoices with them and detach, but preserve, generated PDFs; retain finalized bookings and bookings with issued invoices or payment records. Keep reference sequences intact so deleted references are never reused.
+Only unaccepted draft or pending bookings may be deleted. Delete their unpaid draft invoices with them and detach, but preserve, generated PDFs and uploaded files; clear attachment relationship metadata for removed records. Retain finalized bookings and bookings with issued invoices or payment records. Keep reference sequences intact so deleted references are never reused.
 
 Settings may clear all local business records, profile/preferences, the custom agreement template, generated PDFs, imported legacy files, and logs only after explicit confirmation; then the bundled agreement becomes active again. Keep reference sequences to prevent reusing identifiers and never remove backups or original source files outside the configured data directory.
 
 Agreement Markdown is limited to 1 MB, stored privately and atomically at `PHOTO_STUDIO_DATA_DIR/master_agreement_template.md`, included in backups, and removed by the confirmed data reset. Replace only documented scalar tokens; never evaluate uploaded Markdown as Jinja or raw HTML. Keep the bundled default in `backend/app/defaults/` and include it in Electron packaging.
 
-The document library can delete a saved PDF and its library record while retaining the related client, booking, agreement, or invoice. Confirm permanent file removal. Draft invoices may be prepared and issued before acceptance evidence is recorded; issuing an invoice never marks contractual acceptance. Saved agreement and booking PDFs remain pending until written acceptance is recorded; previews remain drafts. Issued invoice snapshots are immutable and corrected through replacement revisions.
+The document library can delete a saved PDF and its library record while retaining the related client, booking, agreement, or invoice. Confirm permanent file removal. Draft invoices may be prepared and issued before acceptance evidence is recorded; issuing an invoice never marks contractual acceptance. Saved agreement and booking PDFs remain pending until written acceptance is recorded; previews remain drafts. Issued invoice snapshots are immutable and corrected through replacement revisions. Later signed agreement or booking PDFs are appended as new final document versions without changing acceptance dates, evidence, or snapshots. PDF/JPG/PNG attachments may be linked to agreements, bookings, and invoices; they do not reopen records or change invoice terms. Standalone library uploads remain unlinked.
 
 The document library also stores photographer-owned reference uploads without a client association. Accept only signature-checked PDF, JPEG, and PNG files up to 25 MB; write uploads with generated filenames and private local file permissions, and serve only allowlisted types.
 
 Electron PDF previews use Chromium's local PDF viewer. Keep plugin support enabled for the app and permit popup windows only for blob URLs created by the local backend origin. Provide native edit context menus in the main window and PDF preview windows. Master agreement and booking confirmation PDFs contain AcroForm text inputs for signer details, typed signatures, and dates, plus certificate-based signature fields. Invoices do not require signatures. The app records acceptance evidence separately and does not verify identity from a filled PDF.
 
-Master agreements move from draft to pending when their PDF is saved, then finalized when a signed PDF is uploaded or written-acceptance evidence is recorded. Keep the effective date empty until finalization; the last-signature date is the effective date, and `confirmed` is an explicit evidence override. Preserve prior agreement text snapshots when the legal template version changes. Saved unsigned agreement PDFs should show as pending signature in the document library.
+Master agreements move from draft to pending when their PDF is saved, then finalized when a signed PDF is uploaded or written-acceptance evidence is recorded. A signed PDF may be uploaded again after finalization as a new immutable version; do not change the original status, effective date, acceptance reference, or text snapshot. Keep the effective date empty until finalization; the last-signature date is the effective date, and `confirmed` is an explicit evidence override. Preserve prior agreement text snapshots when the legal template version changes. Saved unsigned agreement PDFs should show as pending signature in the document library.
 
 ## Verification and Change Review
 

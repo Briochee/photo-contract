@@ -1,4 +1,4 @@
-"""Finalize agreements from an uploaded signed PDF while preserving document versions."""
+"""Save signed agreement PDFs without changing finalized agreement snapshots."""
 
 import hashlib
 import json
@@ -27,10 +27,11 @@ def store_signed_agreement(
     upload_filename: str,
     content: bytes,
 ) -> tuple[MasterAgreement, GeneratedDocument]:
-    """Finalize a pending agreement and atomically save its signed PDF in the document library.
+    """Save a signed PDF version and finalize the agreement if it is not finalized yet.
 
     The PDF is stored under a generated filename, never a user-supplied path. The returned
-    document is a new immutable library version; an existing draft PDF is left untouched.
+    document is a new immutable library version; existing PDFs and finalized acceptance records
+    remain unchanged.
     """
     if not upload_filename.casefold().endswith(".pdf") or not content.startswith(b"%PDF-"):
         raise ValueError("Upload a valid signed PDF file")
@@ -46,9 +47,8 @@ def store_signed_agreement(
         agreement = session.get(MasterAgreement, agreement_id)
         if agreement is None:
             raise LookupError("Agreement not found")
-        if agreement.status == "finalized":
-            raise ValueError("This contract has already been finalized")
-        if agreement.status not in {"draft", "pending"}:
+        is_finalized = agreement.status in {"accepted", "finalized"}
+        if not is_finalized and agreement.status not in {"draft", "pending"}:
             raise ValueError("This contract cannot be finalized from its current status")
         if not _SAFE_AGREEMENT_REFERENCE.fullmatch(agreement.agreement_ref):
             raise ValueError("The contract reference cannot be used as a safe filename")
@@ -84,14 +84,15 @@ def store_signed_agreement(
         destination_created = True
         temporary_path.unlink()
 
-        agreement.status = "finalized"
-        agreement.effective_date = signed_date
-        agreement.accepted_at = datetime.combine(signed_date, time.min, tzinfo=UTC)
-        agreement.acceptance_reference = f"Uploaded signed PDF: {filename}"[:200]
         source = json.loads(agreement.source_snapshot_json)
-        source["effective_date"] = signed_date.isoformat()
-        source["acceptance_reference"] = agreement.acceptance_reference
-        agreement.source_snapshot_json, _ = snapshot(source)
+        if not is_finalized:
+            agreement.status = "finalized"
+            agreement.effective_date = signed_date
+            agreement.accepted_at = datetime.combine(signed_date, time.min, tzinfo=UTC)
+            agreement.acceptance_reference = f"Uploaded signed PDF: {filename}"[:200]
+            source["effective_date"] = signed_date.isoformat()
+            source["acceptance_reference"] = agreement.acceptance_reference
+            agreement.source_snapshot_json, _ = snapshot(source)
 
         document = GeneratedDocument(
             document_type="agreement",
@@ -117,8 +118,9 @@ def store_signed_agreement(
     session.refresh(agreement)
     session.refresh(document)
     activity.info(
-        "agreement_finalized reference=%s method=uploaded_pdf version=%d",
+        "agreement_signed_copy_saved reference=%s already_finalized=%s version=%d",
         agreement.agreement_ref,
+        is_finalized,
         document.version,
     )
     return agreement, document

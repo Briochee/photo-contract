@@ -1,10 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useFieldArray, useForm, useWatch } from 'react-hook-form'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { z } from 'zod'
 import { PdfPreview } from '../components/common/PdfPreview'
+import { RelatedDocumentUpload } from '../components/common/RelatedDocumentUpload'
 import {
   ErrorMessage,
   FieldError,
@@ -83,6 +84,7 @@ export function BookingEditorPage() {
   const [acceptedDate, setAcceptedDate] = useState(todayIso())
   const [acceptanceReference, setAcceptanceReference] = useState('')
   const [signedConfirmation, setSignedConfirmation] = useState<File | null>(null)
+  const signedConfirmationInput = useRef<HTMLInputElement>(null)
   const [newExpense, setNewExpense] = useState<ExpenseInput>({
     description: '',
     quantity: '1',
@@ -99,6 +101,10 @@ export function BookingEditorPage() {
   const [amendSummary, setAmendSummary] = useState('')
   const [amendDate, setAmendDate] = useState(todayIso())
   const [amendReference, setAmendReference] = useState('')
+  const uploadSignatureDate =
+    bookingQuery.data?.status === 'finalized'
+      ? (bookingQuery.data.accepted_at?.slice(0, 10) ?? acceptedDate)
+      : acceptedDate
 
   useEffect(() => {
     const booking = bookingQuery.data
@@ -191,9 +197,11 @@ export function BookingEditorPage() {
     onSuccess: refresh,
   })
   const uploadSignedConfirmation = useMutation({
-    mutationFn: (file: File) => api.uploadSignedBookingConfirmation(bookingId!, acceptedDate, file),
+    mutationFn: (file: File) =>
+      api.uploadSignedBookingConfirmation(bookingId!, uploadSignatureDate, file),
     onSuccess: async () => {
       setSignedConfirmation(null)
+      if (signedConfirmationInput.current) signedConfirmationInput.current.value = ''
       await queryClient.invalidateQueries({ queryKey: ['documents'] })
       await refresh()
     },
@@ -792,6 +800,7 @@ export function BookingEditorPage() {
                       Or upload signed booking confirmation
                     </label>
                     <input
+                      ref={signedConfirmationInput}
                       id="signed-booking-confirmation"
                       type="file"
                       accept="application/pdf,.pdf"
@@ -856,17 +865,60 @@ export function BookingEditorPage() {
               Saving or issuing a document does not send email or record acceptance.
             </p>
             {booking.status === 'finalized' && (
-              <p className="inline-note">
-                Finalized on {dateLabel(booking.accepted_at?.slice(0, 10))}. Evidence:{' '}
-                {booking.acceptance_reference || 'Recorded acceptance'}.
-                {(booking.acceptance_reference ?? '').startsWith('Uploaded signed PDF:') && (
-                  <>
-                    {' '}
-                    The signed copy is in <Link to="/documents">Documents</Link>.
-                  </>
-                )}
-              </p>
+              <>
+                <p className="inline-note">
+                  Finalized on {dateLabel(booking.accepted_at?.slice(0, 10))}. Evidence:{' '}
+                  {booking.acceptance_reference || 'Recorded acceptance'}.
+                  {(booking.acceptance_reference ?? '').startsWith('Uploaded signed PDF:') && (
+                    <>
+                      {' '}
+                      The signed copy is in <Link to="/documents">Documents</Link>.
+                    </>
+                  )}
+                </p>
+                <div className="agreement-finalization">
+                  <h3>Add signed confirmation version</h3>
+                  <p className="muted">
+                    This adds the signed PDF to Documents while leaving the booking finalized and
+                    preserving its original acceptance record.
+                  </p>
+                  <div className="agreement-finalize-grid agreement-finalize-grid--late">
+                    <div className="field">
+                      <label htmlFor="late-signed-booking-confirmation">
+                        Upload signed confirmation PDF
+                      </label>
+                      <input
+                        ref={signedConfirmationInput}
+                        id="late-signed-booking-confirmation"
+                        type="file"
+                        accept="application/pdf,.pdf"
+                        onChange={(event) => setSignedConfirmation(event.target.files?.[0] ?? null)}
+                      />
+                      <small className="field-hint">PDF only, up to 25 MB.</small>
+                    </div>
+                    <button
+                      className="button button--primary"
+                      type="button"
+                      disabled={
+                        !signedConfirmation ||
+                        hasUnsavedBookingChanges ||
+                        uploadSignedConfirmation.isPending
+                      }
+                      onClick={() =>
+                        signedConfirmation && uploadSignedConfirmation.mutate(signedConfirmation)
+                      }
+                    >
+                      {uploadSignedConfirmation.isPending ? 'Uploading…' : 'Add signed PDF version'}
+                    </button>
+                  </div>
+                </div>
+              </>
             )}
+            <RelatedDocumentUpload
+              key={`booking:${booking.id}`}
+              entityType="booking"
+              entityId={booking.id}
+            />
             {generate.data && (
               <p role="status">
                 Saved {generate.data.name}. <Link to="/documents">Open document library</Link>

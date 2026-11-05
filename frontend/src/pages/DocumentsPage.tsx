@@ -10,7 +10,17 @@ import {
   Status,
 } from '../components/common/Ui'
 import { api } from '../services/api'
+import type { GeneratedDocument } from '../types'
 import { dateLabel } from '../utils/format'
+
+function relatedDocumentPath(document: GeneratedDocument): string | null {
+  const id = document.related_entity_id
+  if (!document.related_entity_type || !id) return null
+  if (document.related_entity_type === 'agreement') {
+    return document.client_id ? `/clients/${document.client_id}` : null
+  }
+  return `/${document.related_entity_type === 'booking' ? 'bookings' : 'invoices'}/${id}`
+}
 
 export function DocumentsPage() {
   const queryClient = useQueryClient()
@@ -47,7 +57,7 @@ export function DocumentsPage() {
       <PageHeader
         eyebrow="Library / Local documents"
         title="Documents"
-        description="Generated business PDFs and uploaded reference files, stored on this device."
+        description="Generated business PDFs and uploaded reference files, stored on this device and linked to their records."
       />
       <Panel shadow>
         <div className="section-heading">
@@ -82,8 +92,8 @@ export function DocumentsPage() {
           </button>
         </form>
         <p id="reference-file-hint" className="field-hint document-upload-hint">
-          PDF, JPG, or PNG up to 25 MB. Files stay in this device’s local library and are not
-          attached to a client, booking, or invoice.
+          PDF, JPG, or PNG up to 25 MB. These reference uploads stay in the local library without a
+          client, booking, or invoice association.
           {selectedFile && <strong> Selected: {selectedFile.name}</strong>}
         </p>
       </Panel>
@@ -127,74 +137,93 @@ export function DocumentsPage() {
                 </tr>
               </thead>
               <tbody>
-                {rows.map((document) => (
-                  <tr key={document.id}>
-                    <td>
-                      <strong>{document.name}</strong>
-                      <small className="table-subline">
-                        {document.document_type.replaceAll('_', ' ')}
-                      </small>
-                    </td>
-                    <td>
-                      {document.client_id && document.client_name ? (
-                        <Link to={`/clients/${document.client_id}`}>{document.client_name}</Link>
-                      ) : (
-                        <span className="muted">—</span>
-                      )}
-                    </td>
-                    <td>
-                      {document.document_type === 'uploaded_file'
-                        ? '—'
-                        : document.invoice_reference ||
-                          document.booking_reference ||
-                          document.reference}
-                    </td>
-                    <td>
-                      {document.document_type === 'uploaded_file' ? '—' : `v${document.version}`}
-                    </td>
-                    <td>{dateLabel(document.created_at)}</td>
-                    <td>
-                      <Status
-                        value={
-                          document.document_type === 'uploaded_file'
-                            ? 'Stored locally'
-                            : document.status === 'pending'
-                              ? 'Pending signature'
-                              : document.status === 'final'
-                                ? 'Final PDF'
-                                : 'Draft PDF'
-                        }
-                      />
-                    </td>
-                    <td className="action-cell">
-                      <button
-                        className="text-button"
-                        onClick={() => setPreviewId(previewId === document.id ? null : document.id)}
-                      >
-                        {previewId === document.id ? 'Close preview' : 'Preview'}
-                      </button>
-                      <a className="text-button" href={api.downloadUrl(document.id)}>
-                        Download
-                      </a>
-                      <button
-                        className="text-button text-button--danger"
-                        type="button"
-                        disabled={removeDocument.isPending}
-                        aria-label={`Delete ${document.name}`}
-                        onClick={() => {
-                          const confirmed = window.confirm(
-                            document.document_type === 'uploaded_file'
-                              ? `Permanently delete ${document.name} from the local document library?`
-                              : `Permanently delete ${document.name} and remove it from the document library? The related ${document.document_type.replaceAll('_', ' ')} record will remain.`,
+                {rows.map((document) => {
+                  const relatedPath = relatedDocumentPath(document)
+                  return (
+                    <tr key={document.id}>
+                      <td>
+                        <strong>{document.name}</strong>
+                        <small className="table-subline">
+                          {document.document_type.replaceAll('_', ' ')}
+                        </small>
+                      </td>
+                      <td>
+                        {document.client_id && document.client_name ? (
+                          <Link to={`/clients/${document.client_id}`}>{document.client_name}</Link>
+                        ) : (
+                          <span className="muted">—</span>
+                        )}
+                      </td>
+                      <td>
+                        {document.document_type === 'uploaded_file' ? (
+                          document.related_reference ? (
+                            relatedPath ? (
+                              <Link to={relatedPath}>{document.related_reference}</Link>
+                            ) : (
+                              document.related_reference
+                            )
+                          ) : (
+                            '—'
                           )
-                          if (confirmed) removeDocument.mutate(document.id)
-                        }}
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                        ) : (
+                          document.invoice_reference ||
+                          document.booking_reference ||
+                          document.reference
+                        )}
+                      </td>
+                      <td>
+                        {document.document_type === 'uploaded_file'
+                          ? document.related_reference
+                            ? 'Attachment'
+                            : '—'
+                          : `v${document.version}`}
+                      </td>
+                      <td>{dateLabel(document.created_at)}</td>
+                      <td>
+                        <Status
+                          value={
+                            document.document_type === 'uploaded_file'
+                              ? 'Stored locally'
+                              : document.status === 'pending'
+                                ? 'Pending signature'
+                                : document.status === 'final'
+                                  ? 'Final PDF'
+                                  : 'Draft PDF'
+                          }
+                        />
+                      </td>
+                      <td className="action-cell">
+                        <button
+                          className="text-button"
+                          onClick={() =>
+                            setPreviewId(previewId === document.id ? null : document.id)
+                          }
+                        >
+                          {previewId === document.id ? 'Close preview' : 'Preview'}
+                        </button>
+                        <a className="text-button" href={api.downloadUrl(document.id)}>
+                          Download
+                        </a>
+                        <button
+                          className="text-button text-button--danger"
+                          type="button"
+                          disabled={removeDocument.isPending}
+                          aria-label={`Delete ${document.name}`}
+                          onClick={() => {
+                            const confirmed = window.confirm(
+                              document.document_type === 'uploaded_file'
+                                ? `Permanently delete ${document.name} from the local document library?`
+                                : `Permanently delete ${document.name} and remove it from the document library? The related ${document.document_type.replaceAll('_', ' ')} record will remain.`,
+                            )
+                            if (confirmed) removeDocument.mutate(document.id)
+                          }}
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>

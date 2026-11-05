@@ -1,10 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Link, useParams } from 'react-router-dom'
 import { z } from 'zod'
 import { PdfPreview } from '../components/common/PdfPreview'
+import { RelatedDocumentUpload } from '../components/common/RelatedDocumentUpload'
 import {
   ErrorMessage,
   FieldError,
@@ -27,6 +28,7 @@ export function ClientDetailPage() {
   const [signedDate, setSignedDate] = useState(todayIso())
   const [acceptanceReference, setAcceptanceReference] = useState('')
   const [signedCopy, setSignedCopy] = useState<File | null>(null)
+  const signedCopyInput = useRef<HTMLInputElement>(null)
   const [agreementId, setAgreementId] = useState<number | null>(null)
   const client = useQuery({
     queryKey: ['client', clientId],
@@ -39,7 +41,10 @@ export function ClientDetailPage() {
     if (client.data) form.reset(client.data)
   }, [client.data, form])
   const selectAgreement = (selectedId: number) => {
-    setSignedDate(todayIso())
+    setSignedDate(
+      client.data?.agreements.find((agreement) => agreement.id === selectedId)?.effective_date ??
+        todayIso(),
+    )
     setAcceptanceReference('')
     setSignedCopy(null)
     setAgreementId(selectedId)
@@ -75,6 +80,7 @@ export function ClientDetailPage() {
     mutationFn: (file: File) => api.uploadSignedAgreement(agreementId!, signedDate, file),
     onSuccess: async () => {
       setSignedCopy(null)
+      if (signedCopyInput.current) signedCopyInput.current.value = ''
       await Promise.all([
         refresh(),
         queryClient.invalidateQueries({ queryKey: ['documents'] }),
@@ -85,7 +91,9 @@ export function ClientDetailPage() {
   const deleteAgreement = useMutation({
     mutationFn: (id: number) => api.deleteAgreement(id),
     onSuccess: async (_, deletedId) => {
-      if (agreementId === deletedId) setAgreementId(null)
+      if (agreementId === deletedId) {
+        setAgreementId(null)
+      }
       await refresh()
     },
   })
@@ -352,6 +360,7 @@ export function ClientDetailPage() {
                   <div className="field">
                     <label htmlFor="signed-copy">Upload signed PDF</label>
                     <input
+                      ref={signedCopyInput}
                       id="signed-copy"
                       type="file"
                       accept="application/pdf,.pdf"
@@ -407,16 +416,53 @@ export function ClientDetailPage() {
               </div>
             )}
             {selectedAgreement?.status === 'finalized' && (
-              <div className="inline-note agreement-help">
-                Finalized on {dateLabel(selectedAgreement.effective_date)}. Evidence:{' '}
-                {selectedAgreement.acceptance_reference || 'Confirmed'}.
-                {selectedAgreement.acceptance_reference?.startsWith('Uploaded signed PDF:') && (
-                  <>
-                    {' '}
-                    The signed copy is in <Link to="/documents">Documents</Link>.
-                  </>
-                )}
-              </div>
+              <>
+                <div className="inline-note agreement-help">
+                  Finalized on {dateLabel(selectedAgreement.effective_date)}. Evidence:{' '}
+                  {selectedAgreement.acceptance_reference || 'Confirmed'}.
+                  {selectedAgreement.acceptance_reference?.startsWith('Uploaded signed PDF:') && (
+                    <>
+                      {' '}
+                      The signed copy is in <Link to="/documents">Documents</Link>.
+                    </>
+                  )}
+                </div>
+                <div className="agreement-finalization">
+                  <h3>Add signed PDF version</h3>
+                  <p className="muted">
+                    This adds the signed copy to Documents while leaving the contract finalized and
+                    preserving its original acceptance record.
+                  </p>
+                  <div className="agreement-finalize-grid agreement-finalize-grid--late">
+                    <div className="field">
+                      <label htmlFor="late-signed-copy">Upload signed PDF</label>
+                      <input
+                        ref={signedCopyInput}
+                        id="late-signed-copy"
+                        type="file"
+                        accept="application/pdf,.pdf"
+                        onChange={(event) => setSignedCopy(event.target.files?.[0] ?? null)}
+                      />
+                      <small className="field-hint">PDF only, up to 25 MB.</small>
+                    </div>
+                    <button
+                      className="button button--primary"
+                      type="button"
+                      disabled={!signedCopy || uploadSignedCopy.isPending}
+                      onClick={() => signedCopy && uploadSignedCopy.mutate(signedCopy)}
+                    >
+                      {uploadSignedCopy.isPending ? 'Uploading…' : 'Add signed PDF version'}
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+            {selectedAgreement && (
+              <RelatedDocumentUpload
+                key={`agreement:${selectedAgreement.id}`}
+                entityType="agreement"
+                entityId={selectedAgreement.id}
+              />
             )}
             {selectedAgreement && generate.data?.reference === selectedAgreement.agreement_ref && (
               <p className="agreement-help" role="status">

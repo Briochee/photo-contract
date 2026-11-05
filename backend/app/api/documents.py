@@ -3,6 +3,7 @@
 import json
 import os
 from pathlib import Path
+from typing import Literal
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
@@ -14,7 +15,7 @@ from sqlalchemy.orm import Session
 from backend.app.config import DEFAULT_OUTPUT_DIR
 from backend.app.database import get_session
 from backend.app.logging_config import activity
-from backend.app.models import GeneratedDocument
+from backend.app.models import Booking, GeneratedDocument, Invoice, MasterAgreement
 from backend.app.schemas import DocumentRequest
 from backend.app.services.documents import document_context, generate_document, render_pdf
 from backend.app.services.uploaded_documents import (
@@ -119,6 +120,100 @@ async def upload_document_route(
     return _document_values(document)
 
 
+@router.post("/attach", status_code=201)
+async def attach_document_route(
+    request: Request,
+    entity_type: Literal["agreement", "booking", "invoice"],
+    entity_id: int = Query(gt=0),
+    filename: str = Query(min_length=1, max_length=255),
+    session: Session = Depends(get_session),
+):
+    """Attach one validated local file to an agreement, booking, or invoice record."""
+    try:
+        display_name = safe_upload_name(filename)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+
+    media_type = UPLOAD_MEDIA_TYPES.get(Path(display_name).suffix.casefold())
+    if media_type is None:
+        raise HTTPException(415, "Upload a PDF, JPG, or PNG file")
+    declared_type = request.headers.get("content-type", "").split(";", maxsplit=1)[0].strip()
+    if declared_type and declared_type not in {media_type, "application/octet-stream"}:
+        raise HTTPException(415, "The selected file type does not match its extension")
+
+    client_id: int
+    booking_id: int | None = None
+    invoice_id: int | None = None
+    if entity_type == "agreement":
+        agreement = session.get(MasterAgreement, entity_id)
+        if agreement is None:
+            raise HTTPException(404, "Agreement not found")
+        client_id = agreement.client_id
+        related_reference = agreement.agreement_ref
+    elif entity_type == "booking":
+        booking = session.get(Booking, entity_id)
+        if booking is None:
+            raise HTTPException(404, "Booking not found")
+        client_id = booking.client_id
+        booking_id = booking.id
+        related_reference = booking.booking_ref
+    else:
+        invoice = session.get(Invoice, entity_id)
+        if invoice is None:
+            raise HTTPException(404, "Invoice not found")
+        client_id = invoice.booking.client_id
+        booking_id = invoice.booking_id
+        invoice_id = invoice.id
+        related_reference = invoice.invoice_ref
+
+    try:
+        content_length = int(request.headers.get("content-length", "0"))
+    except ValueError as exc:
+        raise HTTPException(400, "The upload size is invalid") from exc
+    if content_length < 0:
+        raise HTTPException(400, "The upload size is invalid")
+    if content_length > MAX_DOCUMENT_UPLOAD_BYTES:
+        raise HTTPException(413, "The selected file must be 25 MB or smaller")
+
+    content = bytearray()
+    async for chunk in request.stream():
+        if len(content) + len(chunk) > MAX_DOCUMENT_UPLOAD_BYTES:
+            raise HTTPException(413, "The selected file must be 25 MB or smaller")
+        content.extend(chunk)
+    if not content:
+        raise HTTPException(400, "The selected file is empty")
+    try:
+        validate_upload_content(display_name, media_type, bytes(content))
+    except ValueError as exc:
+        raise HTTPException(415, str(exc)) from exc
+
+    try:
+        document = store_uploaded_document(
+            session,
+            display_name,
+            media_type,
+            bytes(content),
+            related_entity_type=entity_type,
+            related_entity_id=entity_id,
+            related_reference=related_reference,
+            client_id=client_id,
+            booking_id=booking_id,
+            invoice_id=invoice_id,
+        )
+    except (OSError, SQLAlchemyError, ValueError) as exc:
+        session.rollback()
+        activity.error(
+            "related_document_upload_failed type=%s error=%s",
+            entity_type,
+            type(exc).__name__,
+        )
+        raise HTTPException(
+            503, "The file could not be saved to the local document library"
+        ) from exc
+    activity.info("related_document_uploaded id=%d type=%s", document.id, entity_type)
+    return _document_values(document)
+
+
 @router.get("/{document_id}")
 def get_document(document_id: int, session: Session = Depends(get_session)):
     document = session.get(GeneratedDocument, document_id)
@@ -219,6 +314,9 @@ def _document_values(document: GeneratedDocument) -> dict[str, object]:
         "template_version": document.template_version,
         "media_type": metadata.get("media_type"),
         "size_bytes": metadata.get("size_bytes"),
+        "related_entity_type": metadata.get("related_entity_type"),
+        "related_entity_id": metadata.get("related_entity_id"),
+        "related_reference": metadata.get("related_reference"),
     }
 
 

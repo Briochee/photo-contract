@@ -63,4 +63,25 @@ describe('preview API errors', () => {
       },
     )
   })
+
+  it('attaches related files without changing the source record', async () => {
+    const file = new File(['%PDF-receipt'], 'receipt copy.pdf', { type: 'application/pdf' })
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 201,
+      json: async () => ({ related_entity_type: 'invoice', related_entity_id: 8 }),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    await api.attachDocument('invoice', 8, file)
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/documents/attach?entity_type=invoice&entity_id=8&filename=receipt+copy.pdf',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/pdf' },
+        body: file,
+      },
+    )
+  })
 })

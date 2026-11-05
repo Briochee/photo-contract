@@ -170,6 +170,9 @@ export type GeneratedDocument = {
   template_version: string
   media_type?: string | null
   size_bytes?: number | null
+  related_entity_type?: 'agreement' | 'booking' | 'invoice' | null
+  related_entity_id?: number | null
+  related_reference?: string | null
 }
 
 export type Profile = {

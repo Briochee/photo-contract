@@ -1,4 +1,4 @@
-"""Finalize bookings from uploaded signed confirmations while preserving document versions."""
+"""Save signed booking confirmations without changing finalized acceptance snapshots."""
 
 import hashlib
 import os
@@ -30,10 +30,10 @@ def store_signed_booking_confirmation(
     upload_filename: str,
     content: bytes,
 ) -> tuple[Booking, GeneratedDocument]:
-    """Finalize a booking and atomically add its signed confirmation as an immutable document.
+    """Save a signed PDF version and finalize the booking only if it is not finalized yet.
 
-    The uploaded bytes are written under a generated name in the document library. The current
-    booking and photographer details are snapshotted before the database transaction commits.
+    The uploaded bytes use a generated library name. Existing acceptance evidence and snapshots
+    stay unchanged when a finalized booking receives a later signed copy.
     """
     if not upload_filename.casefold().endswith(".pdf") or not content.startswith(b"%PDF-"):
         raise ValueError("Upload a valid signed booking confirmation PDF")
@@ -49,9 +49,8 @@ def store_signed_booking_confirmation(
         booking = get_booking(session, booking_id)
         if booking is None:
             raise LookupError("Booking not found")
-        if booking.status == "finalized":
-            raise BookingFinalizationConflict("This booking has already been finalized")
-        if booking.status not in {"draft", "pending"}:
+        is_finalized = booking.status == "finalized"
+        if not is_finalized and booking.status not in {"draft", "pending"}:
             raise BookingFinalizationConflict(
                 "This booking cannot be finalized from its current status"
             )
@@ -91,15 +90,16 @@ def store_signed_booking_confirmation(
         destination_created = True
         temporary_path.unlink()
 
-        booking.status = "finalized"
-        booking.accepted_at = datetime.combine(signed_date, time.min, tzinfo=UTC)
-        booking.acceptance_reference = f"Uploaded signed PDF: {filename}"[:200]
-        profile = session.scalar(
-            select(PhotographerProfile).order_by(PhotographerProfile.id).limit(1)
-        )
-        booking.accepted_snapshot_json, _ = snapshot(
-            {"booking": booking_values(booking), "photographer": profile_values(profile)}
-        )
+        if not is_finalized:
+            booking.status = "finalized"
+            booking.accepted_at = datetime.combine(signed_date, time.min, tzinfo=UTC)
+            booking.acceptance_reference = f"Uploaded signed PDF: {filename}"[:200]
+            profile = session.scalar(
+                select(PhotographerProfile).order_by(PhotographerProfile.id).limit(1)
+            )
+            booking.accepted_snapshot_json, _ = snapshot(
+                {"booking": booking_values(booking), "photographer": profile_values(profile)}
+            )
         document = GeneratedDocument(
             document_type="booking_confirmation",
             client_id=booking.client_id,
@@ -110,7 +110,7 @@ def store_signed_booking_confirmation(
             file_path=str(destination),
             content_hash=hashlib.sha256(content).hexdigest(),
             template_version="signed-pdf-upload",
-            source_snapshot_json=booking.accepted_snapshot_json,
+            source_snapshot_json=booking.accepted_snapshot_json or "{}",
         )
         session.add(document)
         session.commit()
@@ -125,8 +125,9 @@ def store_signed_booking_confirmation(
     session.refresh(booking)
     session.refresh(document)
     activity.info(
-        "booking_finalized reference=%s method=uploaded_pdf version=%d",
+        "booking_signed_copy_saved reference=%s already_finalized=%s version=%d",
         booking.booking_ref,
+        is_finalized,
         document.version,
     )
     return booking, document

@@ -28,3 +28,22 @@ def test_uploaded_signed_copy_is_returned_in_client_detail(client, monkeypatch, 
     detail = client.get(f"/api/clients/{client_id}")
     assert detail.status_code == 200
     assert detail.json()["agreements"][0]["acceptance_reference"].startswith("Uploaded signed PDF:")
+
+    finalized = upload.json()
+    late_upload = client.post(
+        f"/api/agreements/{agreement_id}/signed-copy",
+        params={"signed_date": "2026-11-05", "filename": "signed agreement v2.pdf"},
+        content=b"%PDF-late-signed-copy",
+        headers={"content-type": "application/pdf"},
+    )
+    assert late_upload.status_code == 200, late_upload.text
+    assert late_upload.json()["status"] == "finalized"
+    assert late_upload.json()["effective_date"] == finalized["effective_date"]
+    assert late_upload.json()["accepted_at"] == finalized["accepted_at"]
+    assert late_upload.json()["acceptance_reference"] == finalized["acceptance_reference"]
+    documents = client.get("/api/documents").json()
+    agreement_documents = [
+        item for item in documents if item["reference"] == agreement.json()["agreement_ref"]
+    ]
+    assert sorted(item["version"] for item in agreement_documents) == [1, 2]
+    assert all(item["status"] == "final" for item in agreement_documents)

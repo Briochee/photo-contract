@@ -61,6 +61,17 @@ const json = (method: string, value?: unknown): RequestInit => ({
   ...(value === undefined ? {} : { body: JSON.stringify(value) }),
 })
 
+function uploadMediaType(file: File): string {
+  const extension = file.name.split('.').at(-1)?.toLowerCase()
+  return (
+    file.type ||
+    ({ pdf: 'application/pdf', jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png' }[
+      extension ?? ''
+    ] ??
+      'application/octet-stream')
+  )
+}
+
 export const api = {
   dashboard: () => request<Dashboard>('/api/dashboard'),
   clients: (q = '') => request<Client[]>(`/api/clients${q ? `?q=${encodeURIComponent(q)}` : ''}`),
@@ -153,16 +164,25 @@ export const api = {
   documents: () => request<GeneratedDocument[]>('/api/documents'),
   uploadDocument: (file: File) => {
     const query = new URLSearchParams({ filename: file.name })
-    const extension = file.name.split('.').at(-1)?.toLowerCase()
-    const mediaType =
-      file.type ||
-      ({ pdf: 'application/pdf', jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png' }[
-        extension ?? ''
-      ] ??
-        'application/octet-stream')
     return request<GeneratedDocument>(`/api/documents/upload?${query}`, {
       method: 'POST',
-      headers: { 'Content-Type': mediaType },
+      headers: { 'Content-Type': uploadMediaType(file) },
+      body: file,
+    })
+  },
+  attachDocument: (
+    entityType: 'agreement' | 'booking' | 'invoice',
+    entityId: number,
+    file: File,
+  ) => {
+    const query = new URLSearchParams({
+      entity_type: entityType,
+      entity_id: String(entityId),
+      filename: file.name,
+    })
+    return request<GeneratedDocument>(`/api/documents/attach?${query}`, {
+      method: 'POST',
+      headers: { 'Content-Type': uploadMediaType(file) },
       body: file,
     })
   },

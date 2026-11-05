@@ -374,6 +374,20 @@ th.numeric {
 .document-upload-hint strong {
   overflow-wrap: anywhere;
 }
+.related-document-upload {
+  display: grid;
+  gap: 0.55rem;
+  border-top: 1px solid var(--line);
+  margin-top: 1rem;
+  padding-top: 1rem;
+}
+.related-document-upload h3,
+.related-document-upload p {
+  margin: 0;
+}
+.related-document-upload .field-hint {
+  margin: 0;
+}
 .search-row input {
   min-height: 42px;
   border: 1px solid var(--line-strong);
@@ -671,6 +685,9 @@ th.numeric {
   grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr) max-content;
   align-items: start;
   gap: 0.8rem;
+}
+.agreement-finalize-grid--late {
+  grid-template-columns: minmax(0, 1fr) max-content;
 }
 .agreement-reference-row {
   display: grid;

@@ -54,8 +54,15 @@ def store_uploaded_document(
     filename: str,
     media_type: str,
     content: bytes,
+    *,
+    related_entity_type: str | None = None,
+    related_entity_id: int | None = None,
+    related_reference: str | None = None,
+    client_id: int | None = None,
+    booking_id: int | None = None,
+    invoice_id: int | None = None,
 ) -> GeneratedDocument:
-    """Atomically store one validated file and its metadata without linking a client record."""
+    """Atomically store a private file, optionally linked to a business record."""
     display_name = safe_upload_name(filename)
     validate_upload_content(display_name, media_type, content)
 
@@ -73,6 +80,7 @@ def store_uploaded_document(
     destination_created = False
     session.rollback()
     try:
+        session.connection().exec_driver_sql("BEGIN IMMEDIATE")
         with tempfile.NamedTemporaryFile(
             dir=root, prefix=".upload-", suffix=".tmp", delete=False
         ) as temporary:
@@ -88,27 +96,31 @@ def store_uploaded_document(
         temporary_path.unlink()
         temporary_path = None
 
-        with session.begin():
-            document = GeneratedDocument(
-                document_type="uploaded_file",
-                client_id=None,
-                reference=f"FILE-{identifier}",
-                version=1,
-                status="final",
-                file_path=str(destination),
-                content_hash=hashlib.sha256(content).hexdigest(),
-                template_version="user-upload-v1",
-                source_snapshot_json=json.dumps(
-                    {
-                        "original_filename": display_name,
-                        "media_type": media_type,
-                        "size_bytes": len(content),
-                    },
-                    separators=(",", ":"),
-                ),
-            )
-            session.add(document)
-            session.flush()
+        document = GeneratedDocument(
+            document_type="uploaded_file",
+            client_id=client_id,
+            booking_id=booking_id,
+            invoice_id=invoice_id,
+            reference=f"FILE-{identifier}",
+            version=1,
+            status="final",
+            file_path=str(destination),
+            content_hash=hashlib.sha256(content).hexdigest(),
+            template_version="user-upload-v1",
+            source_snapshot_json=json.dumps(
+                {
+                    "original_filename": display_name,
+                    "media_type": media_type,
+                    "size_bytes": len(content),
+                    "related_entity_type": related_entity_type,
+                    "related_entity_id": related_entity_id,
+                    "related_reference": related_reference,
+                },
+                separators=(",", ":"),
+            ),
+        )
+        session.add(document)
+        session.commit()
         return document
     except Exception:
         session.rollback()

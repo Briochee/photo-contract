@@ -79,10 +79,19 @@ def test_uploading_signed_confirmation_finalizes_and_keeps_prior_pdf(
     )
     assert (output_directory / original_document["name"]).read_bytes() == b"%PDF-pending"
 
-    duplicate = client.post(
+    late_upload = client.post(
         f"/api/bookings/{booking['id']}/signed-copy",
         params={"signed_date": "2026-11-05", "filename": "signed confirmation.pdf"},
         content=b"%PDF-another-signed-copy",
         headers={"content-type": "application/pdf"},
     )
-    assert duplicate.status_code == 409
+    assert late_upload.status_code == 200, late_upload.text
+    assert late_upload.json()["status"] == "finalized"
+    assert late_upload.json()["accepted_at"] == finalized["accepted_at"]
+    assert late_upload.json()["acceptance_reference"] == finalized["acceptance_reference"]
+    all_documents = client.get("/api/documents").json()
+    booking_documents = [item for item in all_documents if item["booking_id"] == booking["id"]]
+    assert sorted(item["version"] for item in booking_documents) == [1, 2, 3]
+    late_document = next(item for item in booking_documents if item["version"] == 3)
+    assert late_document["status"] == "final"
+    assert (output_directory / late_document["name"]).read_bytes() == b"%PDF-another-signed-copy"
