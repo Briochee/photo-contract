@@ -25,7 +25,25 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Require notarization secrets before building
+      - name: Check and report the application version
+        id: version
+        run: |
+          release_version="$(python3 scripts/check_release_version.py)"
+          echo "version=${release_version}" >> "$GITHUB_OUTPUT"
+
+  build-and-release:
+    needs: preflight
+    runs-on: macos-14
+    environment: production
+    timeout-minutes: 90
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ needs.preflight.outputs.version }}
+      GH_TOKEN: ${{ github.token }}
+      CSC_NAME: ${{ vars.CSC_NAME }}
+    steps:
+      - name: Require production signing and notarization secrets
         shell: bash
         env:
           CSC_LINK: ${{ secrets.CSC_LINK }}
@@ -41,27 +59,10 @@ jobs:
             fi
           done
           if (( ${#missing[@]} > 0 )); then
-            printf 'Refusing to build or publish. Configure these repository Actions secrets: %s\n' "${missing[*]}" >&2
+            printf 'Refusing to build or publish. Configure these secrets in the production environment: %s\n' "${missing[*]}" >&2
             exit 1
           fi
 
-      - name: Check and report the application version
-        id: version
-        run: |
-          release_version="$(python3 scripts/check_release_version.py)"
-          echo "version=${release_version}" >> "$GITHUB_OUTPUT"
-
-  build-and-release:
-    needs: preflight
-    runs-on: macos-14
-    timeout-minutes: 90
-    permissions:
-      contents: write
-    env:
-      VERSION: ${{ needs.preflight.outputs.version }}
-      GH_TOKEN: ${{ github.token }}
-      CSC_NAME: ${{ vars.CSC_NAME }}
-    steps:
       - name: Check out release source
         uses: actions/checkout@v4
         with:
