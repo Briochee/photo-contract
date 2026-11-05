@@ -33,7 +33,7 @@ jobs:
 
   build-and-release:
     needs: preflight
-    runs-on: macos-14
+    runs-on: macos-15
     environment: production
     timeout-minutes: 90
     permissions:
