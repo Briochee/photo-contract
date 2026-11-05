@@ -60,6 +60,7 @@ jobs:
     env:
       VERSION: ${{ needs.preflight.outputs.version }}
       GH_TOKEN: ${{ github.token }}
+      CSC_NAME: ${{ vars.CSC_NAME }}
     steps:
       - name: Check out release source
         uses: actions/checkout@v4
@@ -84,6 +85,12 @@ jobs:
           .venv/bin/python -m pip install -r requirements-packaging.txt
           .venv/bin/python -m playwright install chromium
           npm ci --prefix frontend
+
+      - name: Prepare isolated signing keychain directory
+        run: |
+          APP_BUILDER_TMP_DIR="$RUNNER_TEMP/contract-studio-signing"
+          mkdir -p "$APP_BUILDER_TMP_DIR"
+          echo "APP_BUILDER_TMP_DIR=$APP_BUILDER_TMP_DIR" >> "$GITHUB_ENV"
 
       - name: Build, sign, and notarize Contract Studio
         run: npm run build:mac --prefix frontend
@@ -120,3 +127,15 @@ jobs:
             --target "$GITHUB_SHA" \
             --title "Contract Studio v${VERSION}" \
             --notes-file "$RUNNER_TEMP/release-notes.md"
+
+      - name: Remove temporary signing keychain
+        if: always()
+        shell: bash
+        run: |
+          keychain_dir="$RUNNER_TEMP/contract-studio-signing"
+          if [[ -d "$keychain_dir" ]]; then
+            while IFS= read -r -d '' keychain; do
+              security delete-keychain "$keychain" >/dev/null 2>&1 || rm -f "$keychain"
+            done < <(find "$keychain_dir" -type f -name '*.keychain' -print0)
+            rm -rf "$keychain_dir"
+          fi
