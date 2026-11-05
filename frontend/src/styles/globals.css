@@ -514,6 +514,31 @@ th.numeric {
 .acceptance-controls .inline-note {
   grid-column: 1 / -1;
 }
+.booking-document-review {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 0.38fr);
+  align-items: start;
+  gap: 1rem;
+}
+.booking-document-preview {
+  min-width: 0;
+}
+.booking-document-preview .pdf-preview {
+  height: min(68vh, 720px);
+  min-height: 420px;
+}
+.booking-document-actions {
+  display: grid;
+  align-content: start;
+  gap: 0.65rem;
+  min-width: 0;
+}
+.booking-document-actions > .button {
+  width: 100%;
+  justify-content: center;
+  text-align: center;
+  white-space: normal;
+}
 .booking-signed-copy {
   grid-column: 1 / -1;
   display: grid;
@@ -879,6 +904,13 @@ th.numeric {
   .acceptance-fields,
   .booking-signed-copy {
     grid-template-columns: 1fr;
+  }
+  .booking-document-review {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .booking-document-preview .pdf-preview {
+    height: min(62vh, 640px);
+    min-height: 360px;
   }
   .agreement-actions .action-row {
     flex-wrap: wrap;

@@ -824,26 +824,30 @@ export function BookingEditorPage() {
                 </div>
               </div>
             )}
-            <div className="action-row">
-              <PdfPreview
-                request={{ document_type: 'booking_confirmation', entity_id: booking.id }}
-              />
-              <button
-                className="button button--primary"
-                disabled={generate.isPending}
-                onClick={() => generate.mutate()}
-              >
-                {generate.isPending
-                  ? 'Generating…'
-                  : booking.status === 'finalized'
-                    ? 'Save final PDF version'
-                    : booking.status === 'pending'
-                      ? 'Save pending PDF version'
-                      : 'Save as pending PDF'}
-              </button>
-              <Link className="button" to={`/invoices/new?booking=${booking.id}`}>
-                Create invoice draft
-              </Link>
+            <div className="booking-document-review">
+              <div className="booking-document-preview">
+                <PdfPreview
+                  request={{ document_type: 'booking_confirmation', entity_id: booking.id }}
+                />
+              </div>
+              <div className="booking-document-actions">
+                <button
+                  className="button button--primary"
+                  disabled={generate.isPending}
+                  onClick={() => generate.mutate()}
+                >
+                  {generate.isPending
+                    ? 'Generating…'
+                    : booking.status === 'finalized'
+                      ? 'Save final PDF version'
+                      : booking.status === 'pending'
+                        ? 'Save pending PDF version'
+                        : 'Save as pending PDF'}
+                </button>
+                <Link className="button" to={`/invoices/new?booking=${booking.id}`}>
+                  Create invoice draft
+                </Link>
+              </div>
             </div>
             <p className="muted">
               Preview is temporary. Saving stores a version in Documents and moves the booking to
