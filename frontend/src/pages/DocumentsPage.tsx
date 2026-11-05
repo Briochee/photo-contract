@@ -13,6 +13,13 @@ import { api } from '../services/api'
 import type { GeneratedDocument } from '../types'
 import { dateLabel } from '../utils/format'
 
+type DocumentLibraryRow = {
+  document: GeneratedDocument
+  isSignedCopy: boolean
+  finalizedBySignedCopy: boolean
+  parentName: string | null
+}
+
 function relatedDocumentPath(document: GeneratedDocument): string | null {
   const id = document.related_entity_id
   if (!document.related_entity_type || !id) return null
@@ -20,6 +27,61 @@ function relatedDocumentPath(document: GeneratedDocument): string | null {
     return document.client_id ? `/clients/${document.client_id}` : null
   }
   return `/${document.related_entity_type === 'booking' ? 'bookings' : 'invoices'}/${id}`
+}
+
+function documentLibraryRows(documents: GeneratedDocument[]): DocumentLibraryRow[] {
+  const ordered = [...documents].sort((left, right) => {
+    const dateDifference = Date.parse(right.created_at) - Date.parse(left.created_at)
+    return dateDifference || right.version - left.version
+  })
+  const children = new Map<number, GeneratedDocument[]>()
+  const childIds = new Set<number>()
+
+  for (const signedCopy of ordered) {
+    if (
+      signedCopy.template_version !== 'signed-pdf-upload' ||
+      !['agreement', 'booking_confirmation'].includes(signedCopy.document_type)
+    ) {
+      continue
+    }
+    const parent = ordered
+      .filter(
+        (candidate) =>
+          candidate.document_type === signedCopy.document_type &&
+          candidate.reference === signedCopy.reference &&
+          candidate.template_version !== 'signed-pdf-upload' &&
+          candidate.version < signedCopy.version,
+      )
+      .reduce<GeneratedDocument | null>(
+        (latest, candidate) => (!latest || candidate.version > latest.version ? candidate : latest),
+        null,
+      )
+    if (!parent) continue
+    children.set(parent.id, [...(children.get(parent.id) ?? []), signedCopy])
+    childIds.add(signedCopy.id)
+  }
+
+  return ordered
+    .filter((document) => !childIds.has(document.id))
+    .flatMap((document) => {
+      const signedCopies = (children.get(document.id) ?? []).sort(
+        (left, right) => left.version - right.version,
+      )
+      return [
+        {
+          document,
+          isSignedCopy: false,
+          finalizedBySignedCopy: signedCopies.length > 0,
+          parentName: null,
+        },
+        ...signedCopies.map((signedCopy) => ({
+          document: signedCopy,
+          isSignedCopy: true,
+          finalizedBySignedCopy: false,
+          parentName: document.name,
+        })),
+      ]
+    })
 }
 
 export function DocumentsPage() {
@@ -52,6 +114,7 @@ export function DocumentsPage() {
   })
   const rows =
     documents.data?.filter((document) => kind === 'all' || document.document_type === kind) ?? []
+  const libraryRows = documentLibraryRows(rows)
   return (
     <>
       <PageHeader
@@ -102,7 +165,8 @@ export function DocumentsPage() {
         <p className="muted">
           Draft PDFs are working copies. Agreement PDFs awaiting signatures show as pending. Final
           PDFs are accepted or issued versions. Deleting a PDF here does not change its source
-          record.
+          record. A finalized original with an uploaded signed copy shows that copy nested beneath
+          it.
         </p>
         <div className="filter-row filter-row--single">
           <div className="field">
@@ -137,15 +201,30 @@ export function DocumentsPage() {
                 </tr>
               </thead>
               <tbody>
-                {rows.map((document) => {
+                {libraryRows.map((row) => {
+                  const { document } = row
                   const relatedPath = relatedDocumentPath(document)
                   return (
-                    <tr key={document.id}>
+                    <tr
+                      key={document.id}
+                      className={row.isSignedCopy ? 'document-row--signed-copy' : undefined}
+                    >
                       <td>
-                        <strong>{document.name}</strong>
-                        <small className="table-subline">
-                          {document.document_type.replaceAll('_', ' ')}
-                        </small>
+                        <div className="document-name-cell">
+                          {row.isSignedCopy && (
+                            <span className="document-child-arrow" aria-hidden="true">
+                              ↳
+                            </span>
+                          )}
+                          <div>
+                            <strong>{document.name}</strong>
+                            <small className="table-subline">
+                              {row.isSignedCopy
+                                ? `Signed copy of ${row.parentName}`
+                                : document.document_type.replaceAll('_', ' ')}
+                            </small>
+                          </div>
+                        </div>
                       </td>
                       <td>
                         {document.client_id && document.client_name ? (
@@ -182,13 +261,17 @@ export function DocumentsPage() {
                       <td>
                         <Status
                           value={
-                            document.document_type === 'uploaded_file'
-                              ? 'Stored locally'
-                              : document.status === 'pending'
-                                ? 'Pending signature'
-                                : document.status === 'final'
-                                  ? 'Final PDF'
-                                  : 'Draft PDF'
+                            row.finalizedBySignedCopy
+                              ? 'Finalized'
+                              : row.isSignedCopy
+                                ? 'Signed copy'
+                                : document.document_type === 'uploaded_file'
+                                  ? 'Stored locally'
+                                  : document.status === 'pending'
+                                    ? 'Pending signature'
+                                    : document.status === 'final'
+                                      ? 'Final PDF'
+                                      : 'Draft PDF'
                           }
                         />
                       </td>

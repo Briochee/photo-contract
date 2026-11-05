@@ -248,6 +248,21 @@ td {
   border-bottom: 1px solid var(--line);
   vertical-align: top;
 }
+.document-name-cell {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+}
+.document-row--signed-copy td:first-child {
+  padding-left: 1.4rem;
+}
+.document-child-arrow {
+  flex: 0 0 auto;
+  color: var(--accent);
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
 th.actions,
 td.actions {
   white-space: nowrap;
@@ -295,7 +310,8 @@ th.numeric {
 .status--paid,
 .status--approved,
 .status--final,
-.status--finalized {
+.status--finalized,
+.status--signed_copy {
   color: var(--success);
 }
 .status--issued,
