@@ -334,7 +334,14 @@ def main() -> int:
     )
     app_path = ROOT / "release" / f"mac-{architecture}" / "Contract Studio.app"
     remove_generated_path(app_path)
-    builder_command = [str(builder), "--mac", "dir", f"--{architecture}"]
+    builder_command = [
+        str(builder),
+        "--mac",
+        "dir",
+        f"--{architecture}",
+        "--publish",
+        "never",
+    ]
     if notarized_release:
         builder_command.extend(
             [
