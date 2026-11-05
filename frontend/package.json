@@ -80,10 +80,6 @@
       "target": "dir",
       "icon": "../build/macos_app/contract-studio.icns",
       "category": "public.app-category.photography",
-      "identity": "-",
-      "signIgnore": [
-        "playwright"
-      ],
       "hardenedRuntime": false,
       "gatekeeperAssess": false
     }

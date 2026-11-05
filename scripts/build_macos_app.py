@@ -15,6 +15,13 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 FRONTEND = ROOT / "frontend"
 BUILD_DIR = ROOT / "build" / "macos_app"
+NOTARIZATION_CREDENTIALS = (
+    "CSC_LINK",
+    "CSC_KEY_PASSWORD",
+    "APPLE_API_KEY",
+    "APPLE_API_KEY_ID",
+    "APPLE_API_ISSUER",
+)
 
 
 def run(command: list[str], *, cwd: Path, env: dict[str, str] | None = None) -> str:
@@ -211,10 +218,29 @@ def stage_legacy_data_path(python: Path, destination: Path) -> None:
         )
 
 
+def release_credentials_missing(environment: dict[str, str]) -> list[str]:
+    """Return absent certificate and App Store Connect variables for a signed release build."""
+    return [
+        name
+        for name in NOTARIZATION_CREDENTIALS
+        if not environment.get(name, "").strip()
+    ]
+
+
 def main() -> int:
     """Build the frontend, frozen backend, browser runtime, and Electron app bundle."""
     if sys.platform != "darwin":
         raise RuntimeError("The Finder-installable .app build must run on macOS.")
+
+    notarized_release = os.environ.get("PHOTO_STUDIO_NOTARIZE") == "1"
+    if notarized_release:
+        missing_credentials = release_credentials_missing(dict(os.environ))
+        if missing_credentials:
+            names = ", ".join(missing_credentials)
+            raise RuntimeError(
+                "Refusing to build a release without signing and notarization credentials: "
+                f"{names}. Configure them as GitHub Actions secrets."
+            )
 
     python = select_build_python()
     npm = shutil.which("npm")
@@ -308,7 +334,20 @@ def main() -> int:
     )
     app_path = ROOT / "release" / f"mac-{architecture}" / "Contract Studio.app"
     remove_generated_path(app_path)
-    run([str(builder), "--mac", "dir", f"--{architecture}"], cwd=FRONTEND)
+    builder_command = [str(builder), "--mac", "dir", f"--{architecture}"]
+    if notarized_release:
+        builder_command.extend(
+            [
+                "--config.mac.forceCodeSigning=true",
+                "--config.mac.hardenedRuntime=true",
+                "--config.mac.notarize=true",
+            ]
+        )
+    else:
+        builder_command.extend(
+            ["--config.mac.identity=-", "--config.mac.hardenedRuntime=false"]
+        )
+    run(builder_command, cwd=FRONTEND)
 
     if not app_path.is_dir():
         candidates = sorted((ROOT / "release").glob("**/Contract Studio.app"))
@@ -324,10 +363,13 @@ def main() -> int:
         "Copy Contract Studio.app to /Applications to install it.",
         flush=True,
     )
-    print(
-        "This local ad-hoc signed build is intended for this Mac and is not notarized.",
-        flush=True,
-    )
+    if notarized_release:
+        print("Built with Developer ID signing and Apple notarization.", flush=True)
+    else:
+        print(
+            "This local ad-hoc signed build is intended for this Mac and is not notarized.",
+            flush=True,
+        )
     return 0
 
 

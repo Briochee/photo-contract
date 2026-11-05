@@ -1,10 +1,12 @@
-Version: 30
+Version: 31
 
 # Repository Guidelines
 
 ## Product and Architecture
 
 Contract Studio manages local clients, agreements, bookings, invoices, and PDFs. It uses React/Vite/TypeScript (`frontend/`), FastAPI/SQLAlchemy/SQLite (`backend/`), and Electron (`frontend/desktop/`). Electron shows a local loading window before starting FastAPI; Jinja templates render PDFs through local Playwright Chromium. `scripts/build_macos_app.py` packages the locally installed Electron runtime, backend, and headless browser into a Finder-installable macOS app and imports existing local data on first launch. Package the frozen Python backend in PyInstaller onedir mode; onefile startup fails in this launch environment because its semaphore bootstrap is blocked. Packaged startup may repair imported document paths only to SHA-256-matching copies inside the configured library; keep document deletion restricted to that library. Keep the Electron user-data directory named `Photography Document Studio` for compatibility with existing installations. Streamlit sources remain optional legacy/migration tools; their dependencies are isolated in `legacy/requirements.txt`.
+
+The `macOS Release` workflow runs on pushes to `main`. It must validate that `frontend/package.json` and its npm lockfile match and that the version exceeds the latest stable release tag before building. It requires the five signing/notarization Actions secrets documented in `.env.example`, signs and notarizes an Apple Silicon app, then publishes a ZIP and SHA-256 checksum as a GitHub Release. Local builds remain ad-hoc signed.
 
 ## Project References
 

@@ -92,6 +92,18 @@ If the configured project data directory contains `studio.sqlite3` when you buil
 
 This is an ad-hoc signed, local build for the Mac that produced it; it is not notarized for distribution to other Macs. If macOS blocks a locally built copy, approve it in System Settings → Privacy & Security. Public distribution requires a Developer ID signature and Apple notarization.
 
+## Automated macOS Releases
+
+The **macOS Release** GitHub Actions workflow runs when code is pushed to `main`. Before installing build dependencies, it requires all five GitHub repository Actions secrets shown in `.env.example`. Configure `CSC_LINK` with a one-line base64-encoded Developer ID Application `.p12`, `CSC_KEY_PASSWORD` with its password, and `APPLE_API_KEY` with the one-line base64-encoded App Store Connect `.p8` key; set `APPLE_API_KEY_ID` and `APPLE_API_ISSUER` from App Store Connect. Encode the files with `base64 < key-file | tr -d '\n'`. Do not commit these values or put them in the runtime `.env` file; store them in GitHub under **Settings → Secrets and variables → Actions**. `PHOTO_STUDIO_NOTARIZE=1` is a build-mode flag, not a credential. If any credential is missing, the preflight fails without building or publishing.
+
+Before a new release, bump `frontend/package.json` and its lockfile together, for example:
+
+```bash
+npm version patch --no-git-tag-version --prefix frontend
+```
+
+The workflow rejects a package version that is unchanged or older than the latest stable `vX.Y.Z` Git tag. A successful run publishes `Contract-Studio-macOS-arm64-vX.Y.Z.zip` and a `.sha256` checksum as downloadable assets on the matching GitHub Release. Local `npm run build:mac --prefix frontend` builds remain ad-hoc and do not require release credentials.
+
 Build the static frontend and start the single-origin application:
 
 ```bash
