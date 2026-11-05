@@ -147,6 +147,11 @@ export type Agreement = {
   acceptance_reference: string
 }
 
+export type ClientAgreementSummary = Pick<
+  Agreement,
+  'id' | 'agreement_ref' | 'effective_date' | 'status' | 'template_version' | 'acceptance_reference'
+>
+
 export type GeneratedDocument = {
   id: number
   document_type: 'agreement' | 'booking_confirmation' | 'invoice' | 'uploaded_file'

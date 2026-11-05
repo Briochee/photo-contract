@@ -56,6 +56,7 @@ def get_client(client_id: int, session: Session = Depends(get_session)):
                 "effective_date": row.effective_date.isoformat() if row.effective_date else None,
                 "status": row.status,
                 "template_version": row.template_version,
+                "acceptance_reference": row.acceptance_reference or "",
             }
             for row in client.agreements
         ],

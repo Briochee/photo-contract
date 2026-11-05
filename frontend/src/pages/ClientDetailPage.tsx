@@ -410,7 +410,7 @@ export function ClientDetailPage() {
               <div className="inline-note agreement-help">
                 Finalized on {dateLabel(selectedAgreement.effective_date)}. Evidence:{' '}
                 {selectedAgreement.acceptance_reference || 'Confirmed'}.
-                {selectedAgreement.acceptance_reference.startsWith('Uploaded signed PDF:') && (
+                {selectedAgreement.acceptance_reference?.startsWith('Uploaded signed PDF:') && (
                   <>
                     {' '}
                     The signed copy is in <Link to="/documents">Documents</Link>.

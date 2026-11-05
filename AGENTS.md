@@ -1,4 +1,4 @@
-Version: 27
+Version: 28
 
 # Repository Guidelines
 
@@ -26,6 +26,8 @@ Photographer business name and profile-level rates, payment terms, delivery meth
 Bookings support any photography session or event. Keep event types free-form, with suggestions for personal, wedding, portrait, celebration, and corporate work. Place field help below controls and align labels so helper text does not shift form inputs.
 
 Booking confirmation narrative fields (scope, special deliverables, exceptions, line item descriptions, and approved expense notes) render safe Markdown. Escape raw HTML and omit Markdown images; proposed-expense notes are not included in the confirmation.
+
+Client detail agreement summaries include `acceptance_reference` so finalized uploaded copies can be identified and linked from the contract view. Keep the API response and its frontend summary type aligned.
 
 Client detail pages may delete an agreement only when no booking references it. Keep generated PDF copies in the document library after deleting the agreement record.
 

@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen, waitFor } from '@testing-library/react'
+import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -54,7 +54,10 @@ describe('ClientDetailPage agreement actions', () => {
     vi.spyOn(window, 'confirm').mockReturnValue(true)
   })
 
-  afterEach(() => vi.restoreAllMocks())
+  afterEach(() => {
+    cleanup()
+    vi.restoreAllMocks()
+  })
 
   it('offers a delete action for an agreement that is not linked to a booking', async () => {
     const user = userEvent.setup()
@@ -75,5 +78,35 @@ describe('ClientDetailPage agreement actions', () => {
     expect(window.confirm).toHaveBeenCalledWith(
       expect.stringContaining('Any generated PDF copies remain in Documents.'),
     )
+  })
+
+  it('handles a finalized agreement without an acceptance reference', async () => {
+    const user = userEvent.setup()
+    const agreement = clientRecord.agreements[0]!
+    vi.mocked(api.client).mockResolvedValue({
+      ...clientRecord,
+      agreements: [
+        {
+          ...agreement,
+          status: 'finalized' as const,
+          acceptance_reference: undefined as unknown as string,
+        },
+      ],
+    })
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={['/clients/12']}>
+          <Routes>
+            <Route path="/clients/:clientId" element={<ClientDetailPage />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    )
+
+    await user.click(await screen.findByRole('button', { name: 'Select' }))
+
+    expect(await screen.findByText(/Finalized on/)).toBeInTheDocument()
+    expect(screen.getByText(/Evidence: Confirmed/)).toBeInTheDocument()
   })
 })

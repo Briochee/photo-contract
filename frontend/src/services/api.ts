@@ -4,6 +4,7 @@ import type {
   Booking,
   BookingPayload,
   Client,
+  ClientAgreementSummary,
   DataResetResult,
   Dashboard,
   DocumentRequest,
@@ -64,9 +65,13 @@ export const api = {
   dashboard: () => request<Dashboard>('/api/dashboard'),
   clients: (q = '') => request<Client[]>(`/api/clients${q ? `?q=${encodeURIComponent(q)}` : ''}`),
   client: (id: number) =>
-    request<Client & { bookings: Booking[]; invoices: Invoice[]; agreements: Agreement[] }>(
-      `/api/clients/${id}`,
-    ),
+    request<
+      Client & {
+        bookings: Booking[]
+        invoices: Invoice[]
+        agreements: ClientAgreementSummary[]
+      }
+    >(`/api/clients/${id}`),
   createClient: (value: Partial<Client>) => request<Client>('/api/clients', json('POST', value)),
   updateClient: (id: number, value: Partial<Client>) =>
     request<Client>(`/api/clients/${id}`, json('PATCH', value)),
