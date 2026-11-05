@@ -1,61 +1,56 @@
 # Contract Studio
 
-A local-first application for maintaining photography clients, agreements, bookings, invoices, and historical PDFs. The replacement interface uses React, Vite, and TypeScript; FastAPI, SQLite, SQLAlchemy, and Alembic provide local APIs and persistence. Jinja2 templates rendered by Playwright Chromium generate US Letter PDFs. No hosted service, external font, or telemetry is used.
+Contract Studio is a local-first desktop workspace for photographers who manage client assignments and the paperwork around them. Use it for corporate coverage, weddings, headshots, portraits, celebrations, and other photography sessions. It keeps client details, agreements, bookings, invoices, payments, and supporting files together on your computer.
 
-## Quick Start
+## What You Can Do
 
-See [docs/SETUP.md](docs/SETUP.md) for full installation, desktop launch, development, data migration, backup, and restore instructions. After installing Python and Node dependencies plus Playwright Chromium, launch the desktop app with:
+- Maintain client and photographer profiles, with reusable business defaults.
+- Create master agreements from the bundled Markdown template or upload your own; each agreement keeps its text snapshot.
+- Build bookings with event details, coverage, deliverables, fees, expenses, exceptions, and acceptance status.
+- Prepare invoices from booking charges, configure tax, record payments, and retain immutable issued versions.
+- Generate, preview, and download agreement, booking confirmation, and invoice PDFs. Upload signed copies and keep other reference documents, such as a W-9, in the local document library.
+- Back up and restore the local database and document collection.
+
+Draft and pending records can be prepared before signatures are collected. Recording acceptance or attaching a signed copy updates the applicable status; generating or issuing a document alone does not record client acceptance. Issued invoices and finalized agreement and booking snapshots are retained as historical records.
+
+## Run the Desktop App
+
+Follow [docs/SETUP.md](docs/SETUP.md) for supported runtimes, dependency installation, migration, and troubleshooting. After setup, launch the application with:
 
 ```bash
 npm run desktop --prefix frontend
 ```
 
-Electron builds the frontend and starts the local FastAPI backend automatically. For browser-based development with hot reload, run:
+Electron opens the interface and starts the local FastAPI backend automatically. No separate server, account, cloud service, or internet connection is required during normal use.
+
+## Development
+
+Start the Vite frontend and FastAPI backend together with:
 
 ```bash
 python scripts/dev.py
 ```
 
-The Vite app is at `http://127.0.0.1:5173`; FastAPI docs are at `http://127.0.0.1:8000/docs`. To build and run the single-address local web app:
+The development UI runs at `http://127.0.0.1:5173`, the API at `http://127.0.0.1:8000`, and OpenAPI documentation at `http://127.0.0.1:8000/docs`. Run tests and static checks as described in [docs/SETUP.md](docs/SETUP.md).
 
-```bash
-npm run build --prefix frontend
-python scripts/start.py --open
-```
+## Local Data and Documents
 
-## Main Workflows
+SQLite records, the active agreement template, logs, and generated or uploaded documents live under `PHOTO_STUDIO_DATA_DIR` (default: `data/`). The installed Mac app uses its Application Support directory by default so its data is separate from the app bundle. Keep local records, `.env`, and backups private; they may contain client contact, financial, or tax information.
 
-- Maintain client records and photographer defaults.
-- Draft and accept bookings with itemized charges and authorization evidence.
-- Record accepted amendments without rewriting prior snapshots.
-- Create invoices from agreed booking fees and approved expenses; record payments and explicit revisions.
-- Preview, generate, download, and retain versioned agreement, booking, and invoice PDFs.
-- Back up the SQLite database and generated documents locally.
+To import data from the previous Streamlit application, run `python -m scripts.import_legacy` and review its report. It preserves the source files. Backup and restore steps are in [docs/SETUP.md](docs/SETUP.md).
 
-Money calculations use integer USD cents with decimal-string quantities. Accepted bookings and issued invoices retain snapshots. The bundled starter agreement is `backend/app/defaults/master_photography_services_agreement.md`; users can upload or edit the active Markdown agreement in Settings without rebuilding the app. Each new agreement snapshots the active text and hash, so existing agreements remain unchanged.
+## Architecture
+
+The React, Vite, and TypeScript frontend communicates with a local FastAPI backend. SQLAlchemy and SQLite store the business records; Pydantic validates API data; Jinja2 templates and local Playwright Chromium render print-ready PDFs. Electron packages the frontend and backend into a macOS app. The original Streamlit code remains only as an optional migration and legacy tool.
 
 ## Repository Map
 
 ```text
-backend/app/         FastAPI, SQLAlchemy models, services, templates, and API routes
-backend/alembic/     Database migrations
-backend/tests/       API, pricing, and legal-text regression tests
-frontend/src/        React pages, components, schemas, API client, and styles
-backend/app/defaults/ Bundled starter agreement, used until a local template is saved
-scripts/             Local startup, migration, import, and restore commands
-data/                Private local database, agreement template, settings, logs, and generated PDFs
-examples/            Fictional Playwright-generated agreement, booking, and invoice PDFs
-app.py, core.py      Optional legacy Streamlit sources; dependencies are in legacy/
+frontend/             React application and Electron desktop shell
+backend/app/          FastAPI API, models, services, and document templates
+backend/alembic/      SQLite schema migrations
+backend/tests/        Backend and document regression tests
+scripts/              Startup, packaging, migration, and data utilities
+examples/             Fictional PDFs produced by the document renderer
+docs/SETUP.md         Installation, development, packaging, backup, and test guide
 ```
-
-## Existing Data and Privacy
-
-Run `python -m scripts.import_legacy` to import prior `data/BK-*.json` records, the reference counter, and associated PDFs. The importer does not remove its source files; inspect its report before continuing. The application stores client and financial data locally under `PHOTO_STUDIO_DATA_DIR` (default `data/`). The active Markdown agreement is stored there as `master_agreement_template.md`; backups include it, and clearing all history restores the bundled starter agreement. Keep this directory, `.env`, and backup archives private and out of commits. The root `/assets/` and `/docs/reference/` folders are ignored by Git and are not required to build or run Contract Studio; the tracked `frontend/assets/` icon is still used for app packaging.
-
-## Sample PDFs
-
-`examples/` contains fictional documents generated by the production Jinja2/Playwright pipeline. To recreate them, move the existing files out of `examples/`, then run `python -m scripts.generate_examples`.
-
-## Verification
-
-Run backend checks with `python -m pytest -q tests backend/tests` and `python -m ruff check backend scripts`. Run frontend checks with `npm test --prefix frontend`, `npm run lint --prefix frontend`, and `npm run build --prefix frontend`. Playwright PDF generation additionally requires `python -m playwright install chromium`.
