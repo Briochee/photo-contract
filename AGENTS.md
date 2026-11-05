@@ -1,4 +1,4 @@
-Version: 28
+Version: 29
 
 # Repository Guidelines
 
@@ -15,7 +15,7 @@ Contract Studio manages local clients, agreements, bookings, invoices, and PDFs.
 
 ## Development Conventions
 
-Use four spaces and type annotations in Python (`snake_case`, Ruff configured in `backend/pyproject.toml`). Keep API contracts in Pydantic schemas, authoritative money math in `backend/app/services/pricing.py`, persistence in SQLAlchemy models/repositories, and document layout in Jinja templates. Store money as integer USD cents and quantities as validated decimal strings. Bookings remain editable while draft or pending; saving a booking confirmation moves it to pending, and recording written acceptance finalizes it. Finalized booking snapshots and issued invoices remain immutable unless a recorded amendment or revision is created.
+Use four spaces and type annotations in Python (`snake_case`, Ruff configured in `backend/pyproject.toml`). Keep API contracts in Pydantic schemas, authoritative money math in `backend/app/services/pricing.py`, persistence in SQLAlchemy models/repositories, and document layout in Jinja templates. Store money as integer USD cents and quantities as validated decimal strings. Bookings remain editable while draft or pending; saving a booking confirmation moves it to pending, and written acceptance evidence or an uploaded signed confirmation finalizes it. Preserve uploaded confirmations as immutable document versions. Finalized booking snapshots and issued invoices remain immutable unless a recorded amendment or revision is created.
 
 Use strict TypeScript, functional React components, CSS Modules, TanStack Query for server state, and React Hook Form with Zod for forms. Keep API calls centralized in `frontend/src/services/api.ts`. `npm run desktop --prefix frontend` builds the UI, runs migrations, and launches Electron with its backend child. Do not add remote fonts, assets, telemetry, cloud services, or runtime network dependencies.
 

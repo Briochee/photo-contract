@@ -514,6 +514,18 @@ th.numeric {
 .acceptance-controls .inline-note {
   grid-column: 1 / -1;
 }
+.booking-signed-copy {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content;
+  align-items: end;
+  gap: 0.8rem;
+  border-top: 1px solid var(--line);
+  padding-top: 0.8rem;
+}
+.booking-signed-copy > .button {
+  white-space: nowrap;
+}
 .expense-record {
   border-bottom: 1px solid var(--line);
   padding-bottom: 0.5rem;
@@ -864,7 +876,8 @@ th.numeric {
     gap: 0.3rem;
   }
   .acceptance-controls,
-  .acceptance-fields {
+  .acceptance-fields,
+  .booking-signed-copy {
     grid-template-columns: 1fr;
   }
   .agreement-actions .action-row {
@@ -872,6 +885,9 @@ th.numeric {
   }
   .acceptance-fields > .button {
     grid-column: auto;
+    justify-self: stretch;
+  }
+  .booking-signed-copy > .button {
     justify-self: stretch;
   }
   .agreement-finalize-grid,

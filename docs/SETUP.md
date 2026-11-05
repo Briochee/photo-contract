@@ -140,7 +140,7 @@ Settings also provides **Clear all history and data**. After confirmation, it re
 
 Master agreements move from draft to pending when their PDF is saved to the document library. The effective date remains empty until finalization; it is set to the date of the last signature. Finalize an agreement by uploading the signed PDF or recording that date with a reference (or the explicit `confirmed` override). Unsigned agreement PDFs show as pending signature. Uploaded signed PDFs are stored as separate immutable document versions.
 
-Booking confirmations follow the same lifecycle: the booking remains a draft until its confirmation PDF is saved, then becomes pending until written acceptance is recorded, which finalizes it. Draft invoices can be created and issued from any saved booking before acceptance; issuing an invoice does not finalize the booking.
+Booking confirmations follow the same lifecycle: the booking remains a draft until its confirmation PDF is saved, then becomes pending until written acceptance is recorded or a signed confirmation PDF is uploaded. Either action finalizes the booking; uploaded signed PDFs are retained as immutable document versions. Draft invoices can be created and issued from any saved booking before acceptance; issuing an invoice does not finalize the booking.
 
 Booking confirmation text supports standard Markdown in scope and priorities, special deliverables, exceptions, line-item descriptions, and notes on approved expenses. Common formatting includes bold, italics, headings, lists, quotes, links, and tables. Raw HTML is escaped and Markdown images are omitted so text cannot load external or local resources. Expense notes appear in the confirmation only for approved expenses.
 

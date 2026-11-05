@@ -82,6 +82,7 @@ export function BookingEditorPage() {
   const selectedClientId = useWatch({ control: form.control, name: 'client_id' })
   const [acceptedDate, setAcceptedDate] = useState(todayIso())
   const [acceptanceReference, setAcceptanceReference] = useState('')
+  const [signedConfirmation, setSignedConfirmation] = useState<File | null>(null)
   const [newExpense, setNewExpense] = useState<ExpenseInput>({
     description: '',
     quantity: '1',
@@ -189,6 +190,14 @@ export function BookingEditorPage() {
       }),
     onSuccess: refresh,
   })
+  const uploadSignedConfirmation = useMutation({
+    mutationFn: (file: File) => api.uploadSignedBookingConfirmation(bookingId!, acceptedDate, file),
+    onSuccess: async () => {
+      setSignedConfirmation(null)
+      await queryClient.invalidateQueries({ queryKey: ['documents'] })
+      await refresh()
+    },
+  })
   const addExpense = useMutation({
     mutationFn: () => api.addExpense(bookingId!, newExpense),
     onSuccess: async () => {
@@ -229,6 +238,7 @@ export function BookingEditorPage() {
     return <Loading />
   const booking = bookingQuery.data
   const locked = booking?.status === 'finalized'
+  const hasUnsavedBookingChanges = form.formState.isDirty
   const baseCents = watchedLines.reduce(
     (sum, item) => sum + lineAmountCents(item?.quantity ?? '0', item?.unit_rate ?? '0'),
     0,
@@ -267,6 +277,7 @@ export function BookingEditorPage() {
             agreements.error ||
             save.error ||
             accept.error ||
+            uploadSignedConfirmation.error ||
             addExpense.error ||
             amend.error ||
             generate.error
@@ -740,12 +751,12 @@ export function BookingEditorPage() {
             {(booking.status === 'draft' || booking.status === 'pending') && (
               <div className="acceptance-controls">
                 <p className="inline-note">
-                  Saving the booking confirmation moves this reference to pending. Record the
-                  written acceptance date and evidence reference to finalize it. You can prepare and
-                  issue an invoice while the booking is still a draft or pending.
+                  Save the confirmation as pending, then finalize by uploading the signed PDF or
+                  recording its written acceptance evidence. You can prepare and issue an invoice
+                  while the booking is still a draft or pending.
                 </p>
                 <div className="field">
-                  <label htmlFor="accepted-date">Written acceptance date</label>
+                  <label htmlFor="accepted-date">Date of last signature</label>
                   <input
                     id="accepted-date"
                     type="date"
@@ -764,11 +775,53 @@ export function BookingEditorPage() {
                 </div>
                 <button
                   className="button"
-                  disabled={accept.isPending || !acceptanceReference.trim()}
+                  disabled={
+                    accept.isPending ||
+                    uploadSignedConfirmation.isPending ||
+                    hasUnsavedBookingChanges ||
+                    !acceptedDate ||
+                    !acceptanceReference.trim()
+                  }
                   onClick={() => accept.mutate()}
                 >
                   {accept.isPending ? 'Finalizing…' : 'Finalize booking'}
                 </button>
+                <div className="booking-signed-copy">
+                  <div className="field">
+                    <label htmlFor="signed-booking-confirmation">
+                      Or upload signed booking confirmation
+                    </label>
+                    <input
+                      id="signed-booking-confirmation"
+                      type="file"
+                      accept="application/pdf,.pdf"
+                      onChange={(event) => setSignedConfirmation(event.target.files?.[0] ?? null)}
+                    />
+                    <small className="field-hint">
+                      PDF only, up to 25 MB. Uploading stores this signed version in Documents and
+                      finalizes the saved booking using the date above. Save booking edits before
+                      uploading.
+                    </small>
+                  </div>
+                  <button
+                    className="button button--primary"
+                    type="button"
+                    disabled={
+                      !signedConfirmation ||
+                      !acceptedDate ||
+                      hasUnsavedBookingChanges ||
+                      accept.isPending ||
+                      uploadSignedConfirmation.isPending
+                    }
+                    onClick={() =>
+                      signedConfirmation && uploadSignedConfirmation.mutate(signedConfirmation)
+                    }
+                  >
+                    {uploadSignedConfirmation.isPending
+                      ? 'Uploading…'
+                      : 'Upload signed copy & finalize'}
+                  </button>
+                </div>
               </div>
             )}
             <div className="action-row">
@@ -794,10 +847,22 @@ export function BookingEditorPage() {
             </div>
             <p className="muted">
               Preview is temporary. Saving stores a version in Documents and moves the booking to
-              pending; written acceptance moves it to finalized. Download the saved PDF to complete
-              its signature fields in a compatible PDF app. Saving or issuing a document does not
-              send email or record acceptance.
+              pending; record written acceptance or upload its signed confirmation to finalize it.
+              Download the saved PDF to complete its signature fields in a compatible PDF app.
+              Saving or issuing a document does not send email or record acceptance.
             </p>
+            {booking.status === 'finalized' && (
+              <p className="inline-note">
+                Finalized on {dateLabel(booking.accepted_at?.slice(0, 10))}. Evidence:{' '}
+                {booking.acceptance_reference || 'Recorded acceptance'}.
+                {(booking.acceptance_reference ?? '').startsWith('Uploaded signed PDF:') && (
+                  <>
+                    {' '}
+                    The signed copy is in <Link to="/documents">Documents</Link>.
+                  </>
+                )}
+              </p>
+            )}
             {generate.data && (
               <p role="status">
                 Saved {generate.data.name}. <Link to="/documents">Open document library</Link>

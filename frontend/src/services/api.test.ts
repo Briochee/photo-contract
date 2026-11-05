@@ -40,4 +40,27 @@ describe('preview API errors', () => {
     })
     expect(createObjectURL).toHaveBeenCalledWith(expect.any(Blob))
   })
+
+  it('uploads signed booking confirmations as PDF with the signature date', async () => {
+    const file = new File(['%PDF-signed'], 'signed confirmation.pdf', {
+      type: 'application/pdf',
+    })
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ status: 'finalized' }),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    await api.uploadSignedBookingConfirmation(12, '2026-11-05', file)
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/bookings/12/signed-copy?signed_date=2026-11-05&filename=signed+confirmation.pdf',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/pdf' },
+        body: file,
+      },
+    )
+  })
 })

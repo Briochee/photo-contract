@@ -83,6 +83,14 @@ export const api = {
   deleteBooking: (id: number) => request<void>(`/api/bookings/${id}`, json('DELETE')),
   acceptBooking: (id: number, value: { accepted_date: string; acceptance_reference: string }) =>
     request<Booking>(`/api/bookings/${id}/accept`, json('POST', value)),
+  uploadSignedBookingConfirmation: (id: number, signedDate: string, file: File) => {
+    const query = new URLSearchParams({ signed_date: signedDate, filename: file.name })
+    return request<Booking>(`/api/bookings/${id}/signed-copy?${query}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/pdf' },
+      body: file,
+    })
+  },
   addExpense: (id: number, value: ExpenseInput) =>
     request(`/api/bookings/${id}/expenses`, json('POST', value)),
   authorizeExpense: (

@@ -3,7 +3,7 @@
 import json
 from datetime import UTC, date, datetime, time
 
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from sqlalchemy import or_, select
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
@@ -27,6 +27,11 @@ from backend.app.schemas import (
     BookingInput,
     ExpenseAuthorizationInput,
     ExpenseInput,
+)
+from backend.app.services.booking_signing import (
+    MAX_SIGNED_CONFIRMATION_BYTES,
+    BookingFinalizationConflict,
+    store_signed_booking_confirmation,
 )
 from backend.app.services.domain import (
     booking_values,
@@ -243,6 +248,53 @@ def accept_booking(
         {"booking": booking_values(booking), "photographer": profile_values(profile)}
     )
     session.commit()
+    return booking_values(get_booking(session, booking.id))
+
+
+@router.post("/{booking_id}/signed-copy")
+async def upload_signed_confirmation(
+    booking_id: int,
+    request: Request,
+    signed_date: date,
+    filename: str = Query(min_length=1, max_length=255),
+    session: Session = Depends(get_session),
+):
+    """Store a signed booking confirmation as an immutable library version and finalize it."""
+    content_type = request.headers.get("content-type", "").split(";", maxsplit=1)[0].strip()
+    if content_type.casefold() != "application/pdf":
+        raise HTTPException(415, "Upload the signed booking confirmation as a PDF")
+    try:
+        content_length = int(request.headers.get("content-length", "0"))
+    except ValueError as exc:
+        raise HTTPException(400, "The signed PDF upload size is invalid") from exc
+    if content_length < 0:
+        raise HTTPException(400, "The signed PDF upload size is invalid")
+    if content_length > MAX_SIGNED_CONFIRMATION_BYTES:
+        raise HTTPException(413, "The signed PDF must be 25 MB or smaller")
+
+    content = bytearray()
+    async for chunk in request.stream():
+        if len(content) + len(chunk) > MAX_SIGNED_CONFIRMATION_BYTES:
+            raise HTTPException(413, "The signed PDF must be 25 MB or smaller")
+        content.extend(chunk)
+    try:
+        booking, _document = store_signed_booking_confirmation(
+            session, booking_id, signed_date, filename, bytes(content)
+        )
+    except LookupError as exc:
+        raise HTTPException(404, str(exc)) from exc
+    except BookingFinalizationConflict as exc:
+        raise HTTPException(409, str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    except (OSError, SQLAlchemyError) as exc:
+        session.rollback()
+        activity.error(
+            "booking_signed_upload_failed id=%d error=%s", booking_id, type(exc).__name__
+        )
+        raise HTTPException(
+            503, "The signed confirmation could not be saved to the local document library"
+        ) from exc
     return booking_values(get_booking(session, booking.id))
 
 
