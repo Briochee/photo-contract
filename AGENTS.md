@@ -1,4 +1,4 @@
-Version: 33
+Version: 34
 
 # Repository Guidelines
 
@@ -19,7 +19,7 @@ The `macOS Release` workflow runs on pushes to `main`. It must validate that `fr
 
 Use four spaces and type annotations in Python (`snake_case`, Ruff configured in `backend/pyproject.toml`). Keep API contracts in Pydantic schemas, authoritative money math in `backend/app/services/pricing.py`, persistence in SQLAlchemy models/repositories, and document layout in Jinja templates. Store money as integer USD cents and quantities as validated decimal strings. Bookings remain editable while draft or pending; saving a booking confirmation moves it to pending, and written acceptance evidence or an uploaded signed confirmation finalizes it. Preserve uploaded confirmations as immutable document versions. Finalized booking snapshots and issued invoices remain immutable unless a recorded amendment or revision is created.
 
-Use strict TypeScript, functional React components, CSS Modules, TanStack Query for server state, and React Hook Form with Zod for forms. Keep API calls centralized in `frontend/src/services/api.ts`. `npm run desktop --prefix frontend` builds the UI, runs migrations, and launches Electron with its backend child. Do not add remote fonts, assets, telemetry, cloud services, or runtime network dependencies.
+Use Node.js 22.22.2+, 24.15.0+, or 26.0.0+ with Vite 8, `@vitejs/plugin-react` 6, TypeScript 6, and strict TypeScript. Keep TypeScript below 6.1 until `typescript-eslint` officially supports TypeScript 7. Use functional React components, CSS Modules, TanStack Query for server state, and React Hook Form with Zod for forms. Keep API calls centralized in `frontend/src/services/api.ts`. `npm run desktop --prefix frontend` builds the UI, runs migrations, and launches Electron with its backend child. Do not add remote fonts, assets, telemetry, cloud services, or runtime network dependencies.
 
 Keep one Alembic baseline matching the current SQLite schema. Route desktop and development startup through `backend.app.migrations.upgrade_database`; create a verified SQLite backup before any forward migration and back up recognized pre-squash revisions before reconciling them. Never discard the local database to recover from a migration error.
 

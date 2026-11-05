@@ -3,7 +3,7 @@
 ## Requirements
 
 - Python 3.12 or newer.
-- Node.js 22.12+ and npm (required by the Electron runtime package).
+- Node.js 22.22.2+, 24.15.0+, or 26.0.0+ with npm (required by the frontend toolchain, including jsdom 30).
 - Playwright's local Chromium browser for PDF rendering and pypdf for fillable signature fields.
 - macOS, Windows, or Linux. Calibri is used when installed locally; Carlito/Arial are fallbacks. Fonts are not downloaded.
 
